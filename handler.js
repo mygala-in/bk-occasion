@@ -212,6 +212,58 @@ async function deleteOccasion(request) {
   return { success: true };
 }
 
+async function joinOccasion(request) {
+  const { decoded } = request;
+  const { occasionId } = request.pathParameters;
+  const { side } = request.queryStringParameters;
+  if (side) logger.info('side parameter is provided');
+
+  logger.info('join occasion request for ', occasionId);
+  const [occasion, muObj] = await Promise.all([rdsOccasions.getOccasion(occasionId), rdsOUsers.getUser(occasionId, decoded.id)]);
+  logger.info('requested user ', muObj);
+  if (!_.isEmpty(muObj)) {
+    if (muObj.status === OCCASION_CONFIG.status.verified) errors.handleError(409, 'already joined');
+  }
+  const user = await rdsUsers.getUserFields(decoded.id, ['name', 'username']);
+  logger.info('joining user to occasion and sending fcm push');
+  if (occasion.isPublic) {
+    logger.info('public occasion, joining user');
+    // added side: side || null
+    await rdsOUsers.newOrUpdateUser({ userId: decoded.id, occasionId, role: OCCASION_CONFIG.ROLES.user.role, status: OCCASION_CONFIG.status.verified, side: side || null, isDeleted: false, verifierId: 0 });
+  } else {
+    let sideText;
+    if (side === 'B') {
+      sideText = 'Bride';
+    } else if (side === 'G') {
+      sideText = 'Groom';
+    } else {
+      sideText = 'occasion';
+    }
+
+    logger.info('private occasion, sending join request');
+
+    await Promise.all([
+      rdsOUsers.newOrUpdateUser({ userId: decoded.id, occasionId, role: OCCASION_CONFIG.ROLES.user.role, status: OCCASION_CONFIG.status.pending, side: side || null, isDeleted: false }),
+      snsHelper.pushToSNS('fcm', {
+        service: 'notification',
+        component: 'notification',
+        action: 'new',
+        data: {
+          id: occasionId,
+          type: 'default',
+          title: 'New Join Request',
+          topic: common.getTopicName('occasion.admin', occasionId),
+          groupId: APP_NOTIFICATIONS.channels.occasion,
+          // subtitle: `@${user.username || user.name} is requesting to join the ${side === 'B' ? 'Bride' : 'Groom'} Squad!😍`,
+          subtitle: `@${user.username || user.name} is requesting to join the ${sideText} Squad!😍`,
+          payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+        },
+      }),
+    ]);
+  }
+  return getOccasion(request);
+}
+
 
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
@@ -228,7 +280,7 @@ async function invoke(event, context, callback) {
         resp = await createNewOccasion(request);
         break;
 
-      case '/v1/{id}':
+      case '/v1/{occasionId}':
         switch (request.httpMethod) {
           case 'GET': resp = await getOccasion(request);
             break;
@@ -238,6 +290,10 @@ async function invoke(event, context, callback) {
             break;
           default: errors.handleError(400, 'invalid request path');
         }
+        break;
+
+      case '/v1/{occasionId}/join':
+        resp = await joinOccasion(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');

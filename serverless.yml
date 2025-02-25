@@ -1,6 +1,6 @@
 service: mygala-bk-occasion
 frameworkVersion: '3.40'
-configValidationMode: error
+configValoccasionIdationMode: error
 
 plugins:
   - serverless-prune-plugin
@@ -14,15 +14,15 @@ custom:
     number: 2
   serverless-offline:
     noPrependStageInUrl: true
-  config: ${file(./bk-config/configs.${self:provider.stage}.json)}
+  config: ${file(./bk-config/configs.${self:provoccasionIder.stage}.json)}
   domains:
     prod: api.mygala.in
     dev: dev-api.mygala.in
   customDomain:
     # Ex: serverless create_domain --stage dev
-    domainName: ${self:custom.domains.${self:provider.stage}}
+    domainName: ${self:custom.domains.${self:provoccasionIder.stage}}
     basePath: 'occasion' # indication of backend service
-    stage: ${self:provider.stage}
+    stage: ${self:provoccasionIder.stage}
     createRoute53Record: false
   vpc:
     prod:
@@ -46,7 +46,7 @@ custom:
     allowCredentials: false
 
 
-provider:
+provoccasionIder:
   name: aws
   timeout: 12
   runtime: nodejs16.x
@@ -54,10 +54,10 @@ provider:
   stage: ${opt:stage, 'dev'}
   iam:
     role: ${self:custom.config.lambdaRole}
-  vpc: ${self:custom.vpc.${self:provider.stage}, null}
+  vpc: ${self:custom.vpc.${self:provoccasionIder.stage}, null}
   endpointType: REGIONAL
-  deploymentBucket: ${self:provider.stage}-mygala-serverless-deployments
-  environment: ${file(./bk-config/envs.${self:provider.stage}.json)}
+  deploymentBucket: ${self:provoccasionIder.stage}-mygala-serverless-deployments
+  environment: ${file(./bk-config/envs.${self:provoccasionIder.stage}.json)}
 
 
 functions:
@@ -74,19 +74,19 @@ functions:
           method: get
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{id}
+          path: /v1/{occasionId}
           method: any
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{id}/join
+          path: /v1/{occasionId}/join
           method: put
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{id}/users
+          path: /v1/{occasionId}/users
           method: get
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{id}/assets
+          path: /v1/{occasionId}/assets
           method: get
           cors: ${self:custom.customCors}
   event:
@@ -94,19 +94,19 @@ functions:
     handler: eventsHandler.invoke
     events:
       - http:
-          path: /v1/{id}/event/list
+          path: /v1/{occasionId}/event/list
           method: get
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{id}/event/new
+          path: /v1/{occasionId}/event/new
           method: post
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{id}/event/{event_id} 
+          path: /v1/{occasionId}/event/{event_occasionId} 
           method: any
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{id}/event/{event_id}/assets
+          path: /v1/{occasionId}/event/{event_occasionId}/assets
           method: get
           cors: ${self:custom.customCors}
   occasion-bg-tasks:
@@ -118,8 +118,8 @@ functions:
 
 resources:
   Conditions:
-    isProd: {"Fn::Equals" : ["${self:provider.stage}", "prod"]}
-    isDev: {"Fn::Equals" : ["${self:provider.stage}", "dev"]}
+    isProd: {"Fn::Equals" : ["${self:provoccasionIder.stage}", "prod"]}
+    isDev: {"Fn::Equals" : ["${self:provoccasionIder.stage}", "dev"]}
   Resources:
     occasionBgTasksSNS:
       Type: AWS::SNS::Topic
