@@ -1,3 +1,4 @@
+const _ = require('underscore');
 const logger = require('./bk-utils/logger');
 const access = require('./bk-utils/access');
 const errors = require('./bk-utils/errors');
@@ -9,7 +10,50 @@ const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 // const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
 
-const { OCCASION_CONFIG } = constants;
+const { APP_NOTIFICATIONS, ASSET_CONFIG, OCCASION_CONFIG } = constants;
+
+
+async function getOccasion(request) {
+  const { decoded, pathParameters, queryStringParameters } = request;
+  const { occasionId } = pathParameters;
+  let include = [];
+  if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include.split(',');
+
+  logger.info('get occasion request for ', { occasionId, include });
+  const occasion = await rdsOccasions.getOccasion(occasionId);
+  logger.info('occasion ', JSON.stringify(occasion));
+  if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+
+  const gbIds = []; // groom & bride Ids
+  if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+  if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+  logger.info('groom & bride ids ', JSON.stringify(gbIds));
+
+  if (decoded) {
+    const muObj = await rdsOUsers.getUser(occasion.id, decoded.id);
+    logger.info('requested user ', muObj);
+    occasion.ouser = muObj;
+  }
+  // const [bgcounts, extras, gbUsers] = await Promise.all([
+  //   rdsOUsers.getBGCounts(occasion.id),
+  //   helper.occasionExtras(occasion.id, include),
+  //   rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
+  // ]);
+  const [bgcounts, gbUsers] = await Promise.all([
+    // yet to add extras
+    rdsOUsers.getBGCounts(occasion.id),
+    rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
+  ]);
+  // assigning gbuser data to occasion object
+  if (occasion.extras.brideId) [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
+  if (occasion.extras.groomId) [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  logger.info('bgcounts ', JSON.stringify(bgcounts));
+  // logger.info('extras ', JSON.stringify(extras));
+  // Object.assign(occasion, { ...extras, ...bgcounts });
+  Object.assign(occasion, { ...bgcounts });
+  return occasion;
+}
+
 
 async function getOccasions(request) {
   const { decoded } = request;
@@ -33,7 +77,7 @@ async function getOccasions(request) {
       const bg = bgcounts.items.filter((item) => item.occasionId === occasion.id)[0];
       occasion.groomCount = bg.groomCount;
       occasion.brideCount = bg.brideCount;
-      // no side count is added, referece:occasion_user_js
+      // side count is added, referece:occasion_user_js
       occasion.noSideCount = bg.noSideCount;
       occasions.items[i] = occasion;
     }
@@ -81,7 +125,7 @@ async function createNewOccasion(request) {
   const { insertId } = await rdsOccasions.newOccasion(mObj);
 
   // * muObj - occasion user object
-  const muObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: body.side, verifierId: decoded.id };
+  const muObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
   await Promise.all([
     rdsOUsers.newUser(muObj),
     // snsHelper.pushToSNS({ service: 'email', component: 'occation', action: 'new', data: { comment: 'new occasion created', id: insertId, ...mObj } }),
@@ -95,6 +139,77 @@ async function createNewOccasion(request) {
   request.pathParameters = { occasionId: insertId };
 
   return rdsOccasions.getOccasion(insertId);
+}
+
+async function updateOccasion(request) {
+  const { decoded, pathParameters, body } = request;
+  const { occasionId } = pathParameters;
+  logger.info('occasion update request');
+  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', muObj);
+  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
+  if (muObj.role < OCCASION_CONFIG.ROLES.admin.role || muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+  const user = await rdsUsers.getUserFields(decoded.id, ['name', 'username']);
+
+  const tasks = [];
+  if (body.title || body.url) {
+    logger.info('regenerating links title updated');
+    const [count, occasion] = await Promise.all([rdsOUsers.getTotalUsers(occasionId), rdsOccasions.getOccasion(occasionId)]);
+    logger.info('occasion users count ', count);
+    let image = body.url || occasion.url;
+    if (image) {
+      const config = ASSET_CONFIG.resolutions[0];
+      image = `${process.env.assetsUrl}/${image}/${config.resolution.width}.jpg`;
+    }
+    await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: body.title, url: body.photo, chatId: `GC_${occasion.code}` } });
+  }
+  if (body.extras) {
+    if (body.extras.groomId) {
+      const gMuObj = { userId: body.extras.groomId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'G', verifierId: decoded.id };
+      tasks.push(rdsOUsers.newOrUpdateUser(gMuObj));
+    }
+    if (body.extras.brideId) {
+      const bMuObj = { userId: body.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
+      tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
+    }
+  }
+  if (body.side && muObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
+  if (body.side) delete body.side;
+  // tasks.push(snsHelper.pushToSNS('emails', { service: 'email', component: 'occasion', action: 'update', data: { comment: 'occasion details updated', id: occasionId, userId: decoded.id, ...body } }));
+  tasks.push(rdsOccasions.updateOccasion(occasionId, body));
+  tasks.push(snsHelper.pushToSNS('fcm', {
+    service: 'notification',
+    component: 'notification',
+    action: 'new',
+    data: {
+      id: occasionId,
+      type: 'default',
+      title: 'Occasion Details Updated!',
+      topic: common.getTopicName('occasion.admin', occasionId),
+      groupId: APP_NOTIFICATIONS.channels.occasion,
+      subtitle: `@${user.username || user.name} has updated the occasion details🥳`,
+      payload: { screen: `/occasions/${occasionId}`, params: { useCache: 'false' } },
+    },
+  }));
+  await Promise.all(tasks);
+  return getOccasion(request);
+}
+
+async function deleteOccasion(request) {
+  const { decoded, pathParameters, body } = request;
+  const { occasionId } = pathParameters;
+
+  logger.info('occasion update request');
+  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', muObj);
+  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
+  if (muObj.role < OCCASION_CONFIG.ROLES.admin.role || muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+
+  const occasion = await rdsOccasions.getOccasion(occasionId);
+  if (occasion.code !== body.code) errors.handleError(400, 'invalid occasion code');
+  // await snsHelper.pushToSNS('emails', { service: 'email', component: 'occasion', action: 'delete', data: { comment: 'occasion deleted', id: occasionId, userId: decoded.id } });
+  await snsHelper.pushToSNS('occasion-bg-tasks', { service: 'occasion', component: 'occasion', action: 'delete', data: { occasionId: parseInt(occasionId, 10), userId: decoded.id } });
+  return { success: true };
 }
 
 
@@ -111,6 +226,18 @@ async function invoke(event, context, callback) {
 
       case '/v1/new':
         resp = await createNewOccasion(request);
+        break;
+
+      case '/v1/{id}':
+        switch (request.httpMethod) {
+          case 'GET': resp = await getOccasion(request);
+            break;
+          case 'PUT': resp = await updateOccasion(request);
+            break;
+          case 'DELETE': resp = await deleteOccasion(request);
+            break;
+          default: errors.handleError(400, 'invalid request path');
+        }
         break;
 
       default: errors.handleError(400, 'invalid request path');
