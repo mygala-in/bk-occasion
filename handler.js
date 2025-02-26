@@ -8,6 +8,7 @@ const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
+const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 // const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
 
 const { APP_NOTIFICATIONS, ASSET_CONFIG, OCCASION_CONFIG } = constants;
@@ -264,6 +265,41 @@ async function joinOccasion(request) {
   return getOccasion(request);
 }
 
+async function getOccasionAssets(request) {
+  const { decoded } = request;
+  const { occasionId } = request.pathParameters;
+
+  logger.info('get occasion images request for ', occasionId);
+  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', muObj);
+  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
+  if (muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+  return rdsAssets.getParentAssets(`occasion_${occasionId}`);
+}
+
+async function getOccasionUsers(request) {
+  const { decoded } = request;
+  const { occasionId } = request.pathParameters;
+
+  logger.info('get occasion users request for ', occasionId);
+  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', muObj);
+  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
+  if (muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+
+  let wUsers;
+  if (muObj.role < OCCASION_CONFIG.ROLES.admin.role) wUsers = await rdsOUsers.getVerifiedUsers(occasionId);
+  else wUsers = await rdsOUsers.getUsers(occasionId);
+
+  const userIds = wUsers.items.map((user) => user.userId);
+  const miniProfiles = await rdsUsers.getUserFieldsIn(_.unique(userIds), constants.MINI_PROFILE_FIELDS);
+  for (let i = 0; i < wUsers.count; i += 1) {
+    [wUsers.items[i].user] = miniProfiles.items.filter((user) => user.id === wUsers.items[i].userId);
+  }
+  return wUsers;
+}
+
+
 
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
@@ -294,6 +330,14 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/join':
         resp = await joinOccasion(request);
+        break;
+
+      case '/v1/{id}/assets':
+        resp = await getOccasionAssets(request);
+        break;
+
+      case '/v1/{occasionId}/users':
+        resp = await getOccasionUsers(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
