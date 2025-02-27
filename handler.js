@@ -10,6 +10,8 @@ const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 // const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
+const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+const helper = require('./helper');
 
 const { APP_NOTIFICATIONS, ASSET_CONFIG, OCCASION_CONFIG } = constants;
 
@@ -35,22 +37,18 @@ async function getOccasion(request) {
     logger.info('requested user ', muObj);
     occasion.ouser = muObj;
   }
-  // const [bgcounts, extras, gbUsers] = await Promise.all([
-  //   rdsOUsers.getBGCounts(occasion.id),
-  //   helper.occasionExtras(occasion.id, include),
-  //   rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
-  // ]);
-  const [bgcounts, gbUsers] = await Promise.all([
-    // yet to add extras
+  const [bgcounts, extras, gbUsers] = await Promise.all([
     rdsOUsers.getBGCounts(occasion.id),
+    helper.occasionExtras(occasion.id, include),
     rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
   ]);
+
   // assigning gbuser data to occasion object
   if (occasion.extras.brideId) [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
   if (occasion.extras.groomId) [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
   logger.info('bgcounts ', JSON.stringify(bgcounts));
-  // logger.info('extras ', JSON.stringify(extras));
-  // Object.assign(occasion, { ...extras, ...bgcounts });
+  logger.info('extras ', JSON.stringify(extras));
+  Object.assign(occasion, { ...extras, ...bgcounts });
   Object.assign(occasion, { ...bgcounts });
   return occasion;
 }
@@ -92,8 +90,8 @@ async function getOccasions(request) {
     return occasions;
   }
 
-  // if (type === 'events') return rdsMEvents.getEventsIn(mIds);
-  // if (type === 'assets') return rdsAssets.getParentAssetsIn(mIds.map((i) => `occasion_${i}`));
+  if (type === 'events') return rdsOEvents.getEventsIn(mIds);
+  if (type === 'assets') return rdsAssets.getParentAssetsIn(mIds.map((i) => `occasion_${i}`));
   if (type === 'users') {
     const oUsers = await rdsOUsers.getOUsersIn(vIds);
     const userIds = oUsers.items.map((user) => user.userId);
@@ -139,7 +137,7 @@ async function createNewOccasion(request) {
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
 
-  return rdsOccasions.getOccasion(insertId);
+  return getOccasion(insertId);
 }
 
 async function updateOccasion(request) {

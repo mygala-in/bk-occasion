@@ -10,6 +10,7 @@ const snsHelper = require('./bk-utils/sns.helper');
 // const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+const helper = require('./helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -22,8 +23,8 @@ async function getOccasionEvent(request) {
 
   const event = await rdsOEvents.getEvent(eventId, occasionId);
   logger.info('event ', JSON.stringify(event));
-  // const extras = await helper.eventExtras(eventId, include);
-  // Object.assign(event, extras);
+  const extras = await helper.eventExtras(eventId, include);
+  Object.assign(event, extras);
   return event;
 }
 
@@ -116,27 +117,21 @@ async function getOccasionEvents(request) {
   const events = await rdsOEvents.getEvents(occasionId);
   logger.info('events ', JSON.stringify(events));
 
-  // const extras = await helper.eventsExtras(
-  //   occasionId,
-  //   events.items.map((e) => e.id),
-  //   include
-  // );
-  // logger.info("extras ", JSON.stringify(extras));
+  const extras = await helper.eventsExtras(occasionId, events.items.map((e) => e.id), include);
+  logger.info('extras ', JSON.stringify(extras));
 
-  // for (let i = 0; i < events.count; i += 1) {
-  //   if (include.includes("location")) {
-  //     [events.items[i].location] = extras.locations.items.filter(
-  //       (l) => l.parentId === `event_${events.items[i].id}`
-  //     );
-  //   }
-  //   if (include.includes("assets")) {
-  //     events.items[i].assets = { entity: "collection", count: 0, items: [] };
-  //     events.items[i].assets.items = extras.assets.items.filter(
-  //       (asset) => asset.eventId === events.items[i].id
-  //     );
-  //     events.items[i].assets.count = events.items[i].assets.items.length;
-  //   }
-  // }
+  for (let i = 0; i < events.count; i += 1) {
+    if (include.includes('location')) {
+      [events.items[i].location] = extras.locations.items.filter((l) => l.parentId === `event_${events.items[i].id}`);
+    }
+    if (include.includes('assets')) {
+      events.items[i].assets = { entity: 'collection', count: 0, items: [] };
+      events.items[i].assets.items = extras.assets.items.filter(
+        (asset) => asset.eventId === events.items[i].id,
+      );
+      events.items[i].assets.count = events.items[i].assets.items.length;
+    }
+  }
   return events;
 }
 
@@ -257,20 +252,25 @@ async function invoke(event, context, callback) {
         break;
       case 'v1/{occasionid}/event/{eventId}':
         switch (request.httpMethod) {
-          case 'PUT': resp = await updateOccasionEvent(request);
+          case 'PUT':
+            resp = await updateOccasionEvent(request);
             break;
-          case 'DELETE': resp = await deleteOccasionEvent(request);
+          case 'DELETE':
+            resp = await deleteOccasionEvent(request);
             break;
-          case 'GET': resp = await getOccasionEvent(request);
+          case 'GET':
+            resp = await getOccasionEvent(request);
             break;
-          default: errors.handleError(400, 'invalid request method');
+          default:
+            errors.handleError(400, 'invalid request method');
         }
         break;
       case 'v1/{occasionId}/event/{eventId}/assets':
         resp = await getEventAssets(request);
         break;
 
-      default: errors.handleError(400, 'invalid request path');
+      default:
+        errors.handleError(400, 'invalid request path');
     }
 
     context.callbackWaitsForEmptyEventLoop = false;
