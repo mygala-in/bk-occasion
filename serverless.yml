@@ -64,7 +64,7 @@ functions:
   occasion:
     name: ${self:custom.config.envPrefix}-occasion-apis
     handler: handler.invoke
-    events:
+    # events:
       - http:
           path: /v1/new
           method: post
@@ -92,7 +92,7 @@ functions:
   event:
     name: ${self:custom.config.envPrefix}-occasion-event-apis
     handler: eventsHandler.invoke
-    events:
+    # events:
       - http:
           path: /v1/{id}/event/list
           method: get
