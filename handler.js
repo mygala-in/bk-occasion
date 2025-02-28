@@ -137,7 +137,7 @@ async function createNewOccasion(request) {
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
 
-  return getOccasion(insertId);
+  return getOccasion(request);
 }
 
 async function updateOccasion(request) {
