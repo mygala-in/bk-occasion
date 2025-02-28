@@ -9,7 +9,7 @@ const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
-// const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
+const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const helper = require('./helper');
 
@@ -76,7 +76,7 @@ async function getOccasions(request) {
       const bg = bgcounts.items.filter((item) => item.occasionId === occasion.id)[0];
       occasion.groomCount = bg.groomCount;
       occasion.brideCount = bg.brideCount;
-      // side count is added, referece:occasion_user_js
+      // side count is added
       occasion.noSideCount = bg.noSideCount;
       occasions.items[i] = occasion;
     }
@@ -131,8 +131,8 @@ async function createNewOccasion(request) {
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
   ]);
 
-  // const postId = (await rdsPosts.insertPost({ userId: decoded.id, occationId: insertId, type: 'occasion.join', status: 'A' })).insertId;
-  // await snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'add', data: { userId: decoded.id, occasionId: insertId, postId } });
+  const postId = (await rdsPosts.insertPost({ userId: decoded.id, parentId: insertId, type: 'occasion.join', status: 'A' })).insertId;
+  await snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'add', data: { userId: decoded.id, occasionId: insertId, postId } });
 
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
