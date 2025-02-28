@@ -250,7 +250,7 @@ async function invoke(event, context, callback) {
       case '/v1/{occasionId}/event/list':
         resp = await getOccasionEvents(request);
         break;
-      case 'v1/{occasionid}/event/{eventId}':
+      case 'v1/{occasionId}/event/{eventId}':
         switch (request.httpMethod) {
           case 'PUT':
             resp = await updateOccasionEvent(request);
