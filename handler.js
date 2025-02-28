@@ -236,7 +236,7 @@ async function joinOccasion(request) {
     } else if (side === 'G') {
       sideText = 'Groom';
     } else {
-      sideText = 'occasion';
+      sideText = 'event';
     }
 
     logger.info('private occasion, sending join request');
