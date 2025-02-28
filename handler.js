@@ -330,7 +330,7 @@ async function invoke(event, context, callback) {
         resp = await joinOccasion(request);
         break;
 
-      case '/v1/{id}/assets':
+      case '/v1/{occasionId}/assets':
         resp = await getOccasionAssets(request);
         break;
 
