@@ -60,61 +60,61 @@ provider:
   environment: ${file(./bk-config/envs.${self:provider.stage}.json)}
 
 
-functions:
-  occasion:
-    name: ${self:custom.config.envPrefix}-occasion-apis
-    handler: handler.invoke
-    events:
-      - http:
-          # path: /v1/new
-          method: post
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/list
-          method: get
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/{id}
-          method: any
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/{id}/join
-          method: put
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/{id}/users
-          method: get
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/{id}/assets
-          method: get
-          cors: ${self:custom.customCors}
-  event:
-    name: ${self:custom.config.envPrefix}-occasion-event-apis
-    handler: eventsHandler.invoke
-    events:
-      - http:
-          # path: /v1/{id}/event/list
-          method: get
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/{id}/event/new
-          method: post
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/{id}/event/{event_id} 
-          method: any
-          cors: ${self:custom.customCors}
-      - http:
-          # path: /v1/{id}/event/{event_id}/assets
-          method: get
-          cors: ${self:custom.customCors}
-  occasion-bg-tasks:
-    timeout: 60
-    name: ${self:custom.config.envPrefix}-occasion-bg-tasks
-    handler: processor.sns
-    events:
-      - sns: arn:aws:sns:${self:custom.config.awsRegion}:${self:custom.config.awsAccountId}:${self:custom.config.envPrefix}-occasion-bg-tasks
+# functions:
+#   occasion:
+#     name: ${self:custom.config.envPrefix}-occasion-apis
+#     handler: handler.invoke
+#     events:
+#       - http:
+#           # path: /v1/new
+#           method: post
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/list
+#           method: get
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/{id}
+#           method: any
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/{id}/join
+#           method: put
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/{id}/users
+#           method: get
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/{id}/assets
+#           method: get
+#           cors: ${self:custom.customCors}
+#   event:
+#     name: ${self:custom.config.envPrefix}-occasion-event-apis
+#     handler: eventsHandler.invoke
+#     events:
+#       - http:
+#           # path: /v1/{id}/event/list
+#           method: get
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/{id}/event/new
+#           method: post
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/{id}/event/{event_id} 
+#           method: any
+#           cors: ${self:custom.customCors}
+#       - http:
+#           # path: /v1/{id}/event/{event_id}/assets
+#           method: get
+#           cors: ${self:custom.customCors}
+#   occasion-bg-tasks:
+#     timeout: 60
+#     name: ${self:custom.config.envPrefix}-occasion-bg-tasks
+#     handler: processor.sns
+#     events:
+#       - sns: arn:aws:sns:${self:custom.config.awsRegion}:${self:custom.config.awsAccountId}:${self:custom.config.envPrefix}-occasion-bg-tasks
 
 resources:
   Conditions:
