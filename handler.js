@@ -131,7 +131,7 @@ async function createNewOccasion(request) {
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
   ]);
 
-  const postId = (await rdsPosts.insertPost({ userId: decoded.id, parentId: insertId, type: 'occasion.join', status: 'A' })).insertId;
+  const postId = (await rdsPosts.insertPost({ userId: decoded.id, parentId: insertId, type: 'join', status: 'A' })).insertId;
   await snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'add', data: { userId: decoded.id, occasionId: insertId, postId } });
 
   // TODO send an alert to indicate new occasion event was created
@@ -160,7 +160,7 @@ async function updateOccasion(request) {
       const config = ASSET_CONFIG.resolutions[0];
       image = `${process.env.assetsUrl}/${image}/${config.resolution.width}.jpg`;
     }
-    await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: body.title, url: body.photo, chatId: `GC_${occasion.code}` } });
+    await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: body.title, url: body.url, chatId: `GC_${occasion.code}` } });
   }
   if (body.extras) {
     if (body.extras.groomId) {
