@@ -27,9 +27,12 @@ async function getOccasion(request) {
   logger.info('occasion ', JSON.stringify(occasion));
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
   const gbIds = []; // groom & bride Ids
-  if (occasion.extras) {
-    if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
-    if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+  if (_.has(occasion.extras, 'brideId')) {
+    // if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+    if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+  }
+  if (_.has(occasion.extras, 'groomId')) {
+    if (!gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
     logger.info('groom & bride ids ', JSON.stringify(gbIds));
   }
 
@@ -45,10 +48,15 @@ async function getOccasion(request) {
   ]);
 
   // assigning gbuser data to occasion object
-  if (occasion.extras) {
-    if (occasion.extras.brideId) [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
-    if (occasion.extras.groomId) [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  if (_.has(occasion.extras, 'brideId')) {
+    // if (occasion.extras.brideId) [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
+    [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
   }
+  if (_.has(occasion.extras, 'groomId')) {
+  // ccasion.extras.groomId) [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+    [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  }
+
   logger.info('bgcounts ', JSON.stringify(bgcounts));
   logger.info('extras ', JSON.stringify(extras));
   Object.assign(occasion, { ...extras, ...bgcounts });
