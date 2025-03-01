@@ -120,11 +120,11 @@ async function createNewOccasion(request) {
   // }
 
   // * mObj - occasion object
-  const mObj = { creatorId: decoded.id, title: body.title, note: body.note, code, url: body.url, fromTime: body.fromTime, locationId: body.locationId };
+  const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, url: body.url, fromTime: body.fromTime, locationId: body.locationId };
   const { insertId } = await rdsOccasions.newOccasion(mObj);
 
   // * muObj - occasion user object
-  const muObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
+  const muObj = { userId: decoded.id, occasionId: insertId, type: body.type, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
   await Promise.all([
     rdsOUsers.newUser(muObj),
     // snsHelper.pushToSNS({ service: 'email', component: 'occation', action: 'new', data: { comment: 'new occasion created', id: insertId, ...mObj } }),
