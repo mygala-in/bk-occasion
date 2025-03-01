@@ -5,7 +5,7 @@ const errors = require('./bk-utils/errors');
 const redis = require('./bk-utils/redis.helper');
 const constants = require('./bk-utils/constants');
 const snsHelper = require('./bk-utils/sns.helper');
-const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
+// const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
 const rdsLocs = require('./bk-utils/rds/rds.locations.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
@@ -30,22 +30,22 @@ async function deleteOccasion(message) {
   const userIds = users.items.map((u) => u.userId);
   logger.info('occasion associated user ids ', { userIds });
 
-  const posts = await rdsPosts.getParentPostIds([occasionId]);
-  const postIds = posts.items;
-  logger.info('occasion associated post ids ', { postIds });
+  // const posts = await rdsPosts.getParentPostIds([occasionId]);
+  // const postIds = posts.items;
+  // logger.info('occasion associated post ids ', { postIds });
 
   // * - step1 - delete occasion posts
   let tasks = [];
-  tasks.push(rdsPosts.deletePosts(postIds));
-  postIds.forEach((postId) => {
-    tasks.push(redis.del(redis.transformKey(`post_${postId}_likes_count`)));
-    tasks.push(redis.del(redis.transformKey(`post_${postId}_comments_count`)));
-    // TODO: delete post likes & comments
-    tasks.push(snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'delete', data: { postId, occasionId, userIds } }));
-  });
-  tasks.push(snsHelper.pushToSNS('asset-bg-tasks', { service: 'asset', component: 'post', action: 'delete', data: { parentIds: postIds.map((postId) => `post_${postId}`) } }));
-  await Promise.all(tasks);
-  logger.info('deleted occasion posts & post assets');
+  // tasks.push(rdsPosts.deletePosts(postIds));
+  // postIds.forEach((postId) => {
+  //   tasks.push(redis.del(redis.transformKey(`post_${postId}_likes_count`)));
+  //   tasks.push(redis.del(redis.transformKey(`post_${postId}_comments_count`)));
+  //   // TODO: delete post likes & comments
+  //   tasks.push(snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'delete', data: { postId, occasionId, userIds } }));
+  // });
+  // tasks.push(snsHelper.pushToSNS('asset-bg-tasks', { service: 'asset', component: 'post', action: 'delete', data: { parentIds: postIds.map((postId) => `post_${postId}`) } }));
+  // await Promise.all(tasks);
+  // logger.info('deleted occasion posts & post assets');
 
   // * - step2 - delete event locations
   tasks = [];

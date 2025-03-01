@@ -9,7 +9,7 @@ const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
-const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
+// const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const helper = require('./helper');
 
@@ -82,8 +82,12 @@ async function getOccasions(request) {
     for (let i = 0; i < occasions.count; i += 1) {
       const occasion = occasions.items[i];
       [occasion.ouser] = mJoins.items.filter((item) => item.occasionId === occasion.id);
-      if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
-      if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+      if (_.has(occasion.extras, 'brideId')) {
+        if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+      }
+      if (_.has(occasion.extras, 'groomId')) {
+        if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+      }
       const bg = bgcounts.items.filter((item) => item.occasionId === occasion.id)[0];
       occasion.groomCount = bg.groomCount;
       occasion.brideCount = bg.brideCount;
@@ -95,8 +99,8 @@ async function getOccasions(request) {
     const gbUsers = await rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']);
     logger.info('gbUsers ', JSON.stringify(gbUsers));
     for (let i = 0; i < occasions.count; i += 1) {
-      if (occasions.items[i].extras.brideId) [occasions.items[i].extras.bride] = gbUsers.items.filter((item) => item.id === occasions.items[i].extras.brideId);
-      if (occasions.items[i].extras.groomId) [occasions.items[i].extras.groom] = gbUsers.items.filter((item) => item.id === occasions.items[i].extras.groomId);
+      if (_.has(occasions.items[i].extras, 'brideId')) [occasions.items[i].extras.bride] = gbUsers.items.filter((item) => item.id === occasions.items[i].extras.brideId);
+      if (_.has(occasions.items[i].extras, 'groomId')) [occasions.items[i].extras.groom] = gbUsers.items.filter((item) => item.id === occasions.items[i].extras.groomId);
     }
     return occasions;
   }
@@ -142,9 +146,7 @@ async function createNewOccasion(request) {
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
   ]);
 
-  const postId = (await rdsPosts.insertPost({ userId: decoded.id, parentId: insertId, type: 'join', status: 'A' })).insertId;
-  await snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'add', data: { userId: decoded.id, occasionId: insertId, postId } });
-
+  await snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `${body.type}_${insertId}`, type: 'join', status: 'A' } });
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
 
