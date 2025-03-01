@@ -26,11 +26,12 @@ async function getOccasion(request) {
   const occasion = await rdsOccasions.getOccasion(occasionId);
   logger.info('occasion ', JSON.stringify(occasion));
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
-
   const gbIds = []; // groom & bride Ids
-  if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
-  if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
-  logger.info('groom & bride ids ', JSON.stringify(gbIds));
+  if (occasion.extras) {
+    if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+    if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+    logger.info('groom & bride ids ', JSON.stringify(gbIds));
+  }
 
   if (decoded) {
     const muObj = await rdsOUsers.getUser(occasion.id, decoded.id);
@@ -44,8 +45,10 @@ async function getOccasion(request) {
   ]);
 
   // assigning gbuser data to occasion object
-  if (occasion.extras.brideId) [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
-  if (occasion.extras.groomId) [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  if (occasion.extras) {
+    if (occasion.extras.brideId) [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
+    if (occasion.extras.groomId) [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  }
   logger.info('bgcounts ', JSON.stringify(bgcounts));
   logger.info('extras ', JSON.stringify(extras));
   Object.assign(occasion, { ...extras, ...bgcounts });
