@@ -175,15 +175,14 @@ async function updateOccasion(request) {
     }
     await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: body.title, url: body.url, chatId: `GC_${occasion.code}` } });
   }
-  if (body.extras) {
-    if (body.extras.groomId) {
-      const gMuObj = { userId: body.extras.groomId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'G', verifierId: decoded.id };
-      tasks.push(rdsOUsers.newOrUpdateUser(gMuObj));
-    }
-    if (body.extras.brideId) {
-      const bMuObj = { userId: body.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
-      tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
-    }
+
+  if (body.extras?.groomId) {
+    const gMuObj = { userId: body.extras.groomId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'G', verifierId: decoded.id };
+    tasks.push(rdsOUsers.newOrUpdateUser(gMuObj));
+  }
+  if (body.extras?.brideId) {
+    const bMuObj = { userId: body.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
+    tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
   }
   if (body.side && muObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
   if (body.side) delete body.side;
