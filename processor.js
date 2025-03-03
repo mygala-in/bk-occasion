@@ -41,7 +41,7 @@ async function deleteOccasion(message) {
     tasks.push(redis.del(redis.transformKey(`post_${postId}_likes_count`)));
     tasks.push(redis.del(redis.transformKey(`post_${postId}_comments_count`)));
     // TODO: delete post likes & comments
-    tasks.push(snsHelper.pushToSNS('timeline-bg-tasks', { service: 'timeline', component: 'post', action: 'delete', data: { postId, occasionId, userIds } }));
+    tasks.push(snsHelper.pushToSNS('post-bg-tasks', { service: 'timeline', component: 'post', action: 'delete', data: { postId, occasionId, userIds } }));
   });
   tasks.push(snsHelper.pushToSNS('asset-bg-tasks', { service: 'asset', component: 'post', action: 'delete', data: { parentIds: postIds.map((postId) => `post_${postId}`) } }));
   await Promise.all(tasks);
