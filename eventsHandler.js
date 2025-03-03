@@ -250,7 +250,7 @@ async function invoke(event, context, callback) {
       case '/v1/{occasionId}/event/list':
         resp = await getOccasionEvents(request);
         break;
-      case 'v1/{occasionId}/event/{eventId}':
+      case '/v1/{occasionId}/event/{eventId}':
         switch (request.httpMethod) {
           case 'PUT':
             resp = await updateOccasionEvent(request);
@@ -265,7 +265,7 @@ async function invoke(event, context, callback) {
             errors.handleError(400, 'invalid request method');
         }
         break;
-      case 'v1/{occasionId}/event/{eventId}/assets':
+      case '/v1/{occasionId}/event/{eventId}/assets':
         resp = await getEventAssets(request);
         break;
 
