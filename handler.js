@@ -135,7 +135,11 @@ async function createNewOccasion(request) {
   // }
 
   // * mObj - occasion object
-  const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, url: body.url, fromTime: body.fromTime, locationId: body.locationId };
+  const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, url: body.url, fromTime: common.convertToDate(body.fromTime), locationId: body.locationId };
+  if (body.tillTime) mObj.tillTime = common.convertToDate(body.tillTime);
+  if (body.isPublic) mObj.isPublic = body.isPublic;
+  if (body.extras) mObj.extras = body.extras;
+
   logger.info('new occasion object ', mObj);
   const { insertId } = await rdsOccasions.newOccasion(mObj);
 

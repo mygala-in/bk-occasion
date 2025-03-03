@@ -8,7 +8,8 @@
 		"lint": "node_modules/eslint/bin/eslint.js .",
 		"lint-fix": "node_modules/eslint/bin/eslint.js . --fix",
 		"dev-deploy": "node_modules/serverless/bin/serverless.js deploy --stage dev",
-		"prod-deploy": "node_modules/serverless/bin/serverless.js deploy --stage prod"
+		"prod-deploy": "node_modules/serverless/bin/serverless.js deploy --stage prod",
+		"local": "node_modules/serverless/bin/serverless.js offline start --stage dev"
 	},
 	"repository": {
 		"type": "git",
@@ -21,9 +22,10 @@
 		"eslint": "^8.57.0",
 		"eslint-config-airbnb-base": "^15.0.0",
 		"eslint-plugin-import": "^2.29.1",
-		"serverless": "^3.15.2",
+		"serverless": "^3.12.0",
 		"serverless-domain-manager": "^6.0.2",
-		"serverless-prune-plugin": "^2.0.1"
+		"serverless-prune-plugin": "^2.0.1",
+		"serverless-offline": "^13.9.0"
 	},
 	"dependencies": {
 		"ioredis": "^5.5.0",
