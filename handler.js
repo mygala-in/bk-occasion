@@ -226,7 +226,7 @@ async function deleteOccasion(request) {
 async function joinOccasion(request) {
   const { decoded } = request;
   const { occasionId } = request.pathParameters;
-  const { side } = request.queryStringParameters;
+  const side = _.has(request.queryStringParameters, 'side') ? request.queryStringParameters.side : null;
   if (side) logger.info('side parameter is provided');
 
   logger.info('join occasion request for ', occasionId);
