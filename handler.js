@@ -124,15 +124,15 @@ async function createNewOccasion(request) {
   const { body, decoded } = request;
   logger.info('new occasion request');
 
-  // let isCodeExists = true;
-  const code = common.genUid();
-  // while (isCodeExists) {
-  //   code = common.genUid();
-  //   // eslint-disable-next-line no-await-in-loop
-  //   const occasion = await rdsOccasions.getOccasion(code);
-  //   // isCodeExists = occasion != null && occasion.entity === 'occasion';
-  //   logger.info('occasion code exists check ', { code, isCodeExists });
-  // }
+  let isCodeExists = true;
+  let code = common.genUid();
+  while (isCodeExists) {
+    code = common.genUid();
+    // eslint-disable-next-line no-await-in-loop
+    const occasion = await rdsOccasions.getOccasion(code);
+    isCodeExists = occasion != null && occasion.entity === 'occasion';
+    logger.info('occasion code exists check ', { code, isCodeExists });
+  }
 
   // * mObj - occasion object
   const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, fromTime: common.convertToDate(body.fromTime), locationId: body.locationId };
