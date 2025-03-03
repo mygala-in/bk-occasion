@@ -135,10 +135,11 @@ async function createNewOccasion(request) {
   // }
 
   // * mObj - occasion object
-  const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, url: body.url, fromTime: common.convertToDate(body.fromTime), locationId: body.locationId };
+  const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, fromTime: common.convertToDate(body.fromTime), locationId: body.locationId };
   if (body.tillTime) mObj.tillTime = common.convertToDate(body.tillTime);
   if (body.isPublic) mObj.isPublic = body.isPublic;
   if (body.extras) mObj.extras = body.extras;
+  if (body.url) mObj.url = body.url;
 
   logger.info('new occasion object ', mObj);
   const { insertId } = await rdsOccasions.newOccasion(mObj);
@@ -178,7 +179,7 @@ async function updateOccasion(request) {
       const config = ASSET_CONFIG.resolutions[0];
       image = `${process.env.assetsUrl}/${image}/${config.resolution.width}.jpg`;
     }
-    await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: body.title, url: body.url, chatId: `GC_${occasion.code}` } });
+    await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: body.title, url: image, chatId: `GC_${occasion.code}` } });
   }
 
   if (body.extras?.groomId) {
