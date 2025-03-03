@@ -136,7 +136,7 @@ async function createNewOccasion(request) {
 
   // * mObj - occasion object
   const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, url: body.url, fromTime: body.fromTime, locationId: body.locationId };
-  logger('new occasion object ', mObj);
+  logger.info('new occasion object ', mObj);
   const { insertId } = await rdsOccasions.newOccasion(mObj);
 
   // * muObj - occasion user object
