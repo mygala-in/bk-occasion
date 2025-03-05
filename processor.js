@@ -22,7 +22,7 @@ async function deleteOccasion(message) {
   const eventIds = events.items.map((e) => e.id);
   logger.info('occasion associated event ids ', { eventIds });
 
-  const oLocs = await rdsLocs.getParentLocationsIn(`occasion_${occasionId}`);
+  const oLocs = await rdsLocs.getParentLocationsIn([`occasion_${occasionId}`]);
   const oLocIds = oLocs.items.map((l) => l.id);
   logger.info('occasion associated location ids ', { oLocIds });
 
