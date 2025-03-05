@@ -42,7 +42,7 @@ async function deleteOccasion(message) {
   // * - step1 - delete occasion posts
   let tasks = [];
   postIds.forEach((postId) => {
-    tasks.push(snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { postId, parentId: `occasion_${occasionId}`, userIds } }));
+    tasks.push(snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'delete', data: { postId, parentId: `occasion_${occasionId}`, userIds } }));
   });
   tasks.push(snsHelper.pushToSNS('asset-bg-tasks', { service: 'asset', component: 'post', action: 'delete', data: { parentIds: postIds.map((postId) => `post_${postId}`) } }));
   await Promise.all(tasks);
