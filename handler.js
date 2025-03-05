@@ -178,7 +178,7 @@ async function updateOccasion(request) {
     tasks.push(rdsOUsers.newOrUpdateUser(gMuObj));
   }
   if (body.extras?.brideId) {
-    const bMuObj = { userId: body.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
+    const bMuObj = { userId: body.extras.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
     tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
   }
   if (body.side && muObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
