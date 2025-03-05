@@ -143,7 +143,7 @@ async function createNewOccasion(request) {
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
   ]);
 
-  await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `${body.type}_${insertId}`, type: 'join', status: 'A' } });
+  await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${insertId}`, type: 'join', status: 'A' } });
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
 
