@@ -22,15 +22,19 @@ async function deleteOccasion(message) {
   const eventIds = events.items.map((e) => e.id);
   logger.info('occasion associated event ids ', { eventIds });
 
-  const locations = await rdsLocs.getParentLocationsIn(eventIds.map((id) => `event_${id}`));
-  const locationIds = locations.items.map((l) => l.id);
-  logger.info('event associated location ids ', { locationIds });
+  const oLocs = await rdsLocs.getParentLocationsIn(`occasion_${occasionId}`);
+  const oLocIds = oLocs.items.map((l) => l.id);
+  logger.info('occasion associated location ids ', { oLocIds });
+
+  const eLocs = await rdsLocs.getParentLocationsIn(eventIds.map((id) => `event_${id}`));
+  const eLocIds = eLocs.items.map((l) => l.id);
+  logger.info('event associated location ids ', { eLocIds });
 
   const users = await rdsOUsers.getUsers(occasionId);
   const userIds = users.items.map((u) => u.userId);
   logger.info('occasion associated user ids ', { userIds });
 
-  const posts = await rdsPosts.getParentPostIds([occasionId]);
+  const posts = await rdsPosts.getParentPostIds([`occasion_${occasionId}`]);
   const postIds = posts.items;
   logger.info('occasion associated post ids ', { postIds });
 
@@ -49,7 +53,8 @@ async function deleteOccasion(message) {
 
   // * - step2 - delete event locations
   tasks = [];
-  tasks.push(rdsLocs.delLocations(locationIds));
+  tasks.push(rdsLocs.delLocations(oLocIds));
+  tasks.push(rdsLocs.delLocations(eLocIds));
   tasks.push(redis.del(redis.transformKey(`occasion_${occasionId}_locations`)));
   eventIds.forEach((eventId) => tasks.push(redis.del(redis.transformKey(`event_${eventId}_locations`))));
   await Promise.all(tasks);
