@@ -183,6 +183,9 @@ async function updateOccasion(request) {
   }
   if (body.side && muObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
   if (body.side) delete body.side;
+  if (body.fromTime) body.fromTime = common.convertToDate(body.fromTime);
+  if (body.tillTime) body.tillTime = common.convertToDate(body.tillTime);
+
   // tasks.push(snsHelper.pushToSNS('emails', { service: 'email', component: 'occasion', action: 'update', data: { comment: 'occasion details updated', id: occasionId, userId: decoded.id, ...body } }));
   tasks.push(rdsOccasions.updateOccasion(occasionId, body));
   tasks.push(snsHelper.pushToSNS('fcm', {
@@ -215,7 +218,6 @@ async function deleteOccasion(request) {
 
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (occasion.code !== body.code) errors.handleError(400, 'invalid occasion code');
-  // await snsHelper.pushToSNS('emails', { service: 'email', component: 'occasion', action: 'delete', data: { comment: 'occasion deleted', id: occasionId, userId: decoded.id } });
   await snsHelper.pushToSNS('occasion-bg-tasks', { service: 'occasion', component: 'occasion', action: 'delete', data: { occasionId: parseInt(occasionId, 10), userId: decoded.id } });
   return { success: true };
 }
