@@ -125,9 +125,9 @@ async function createNewOccasion(request) {
   logger.info('new occasion request');
 
   let isCodeExists = true;
-  let code = common.genUid();
+  let code = common.genCode();
   while (isCodeExists) {
-    code = common.genUid();
+    code = common.genCode();
     // eslint-disable-next-line no-await-in-loop
     const occasion = await rdsOccasions.getOccasion(code);
     isCodeExists = occasion != null && occasion.entity === 'occasion';
