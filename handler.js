@@ -9,7 +9,6 @@ const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
-// const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const helper = require('./helper');
 
@@ -28,7 +27,6 @@ async function getOccasion(request) {
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
   const gbIds = []; // groom & bride Ids
   if (_.has(occasion.extras, 'brideId')) {
-    // if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
     if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
   }
   if (_.has(occasion.extras, 'groomId')) {
@@ -41,26 +39,23 @@ async function getOccasion(request) {
     logger.info('requested user ', muObj);
     occasion.ouser = muObj;
   }
-  const [bgcounts, extras, gbUsers] = await Promise.all([
-    rdsOUsers.getBGCounts(occasion.id),
+  const [ouCounts, extras, gbUsers] = await Promise.all([
+    rdsOUsers.getOUsersCounts(occasion.id),
     helper.occasionExtras(occasion.id, include),
     rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
   ]);
 
-  // assigning gbuser data to occasion object
   if (_.has(occasion.extras, 'brideId')) {
-    // if (occasion.extras.brideId) [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
     [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
   }
   if (_.has(occasion.extras, 'groomId')) {
-  // ccasion.extras.groomId) [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
     [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
   }
 
-  logger.info('bgcounts ', JSON.stringify(bgcounts));
+  logger.info('ou counts ', JSON.stringify(ouCounts));
+  occasion.counts = ouCounts;
   logger.info('extras ', JSON.stringify(extras));
-  Object.assign(occasion, { ...extras, ...bgcounts });
-  Object.assign(occasion, { ...bgcounts });
+  Object.assign(occasion, { ...extras });
   return occasion;
 }
 
@@ -76,9 +71,9 @@ async function getOccasions(request) {
   logger.info('verified occasion ids ', vIds);
   if (type === 'occasions') {
     const gbIds = []; // groom & bride Ids
-    const [occasions, bgcounts] = await Promise.all([rdsOccasions.getOccasionsIn(mIds), rdsOUsers.getBGCountsIn(mIds)]);
+    const [occasions, ouCounts] = await Promise.all([rdsOccasions.getOccasionsIn(mIds), rdsOUsers.getOUsersCountsIn(mIds)]);
     logger.info('occasions ', JSON.stringify(occasions));
-    logger.info('bgcounts ', JSON.stringify(bgcounts));
+    logger.info('ou counts ', JSON.stringify(ouCounts));
     for (let i = 0; i < occasions.count; i += 1) {
       const occasion = occasions.items[i];
       [occasion.ouser] = mJoins.items.filter((item) => item.occasionId === occasion.id);
@@ -88,11 +83,8 @@ async function getOccasions(request) {
       if (_.has(occasion.extras, 'groomId')) {
         if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
       }
-      const bg = bgcounts.items.filter((item) => item.occasionId === occasion.id)[0];
-      occasion.groomCount = bg.groomCount;
-      occasion.brideCount = bg.brideCount;
-      // side count is added
-      occasion.noSideCount = bg.noSideCount;
+      const [ouc] = ouCounts.items.filter((item) => item.occasionId === occasion.id);
+      occasion.counts = ouc;
       occasions.items[i] = occasion;
     }
     logger.info('groom & bride ids ', JSON.stringify(gbIds));
@@ -148,7 +140,6 @@ async function createNewOccasion(request) {
   const muObj = { userId: decoded.id, occasionId: insertId, type: body.type, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
   await Promise.all([
     rdsOUsers.newUser(muObj),
-    // snsHelper.pushToSNS({ service: 'email', component: 'occation', action: 'new', data: { comment: 'new occasion created', id: insertId, ...mObj } }),
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
   ]);
 

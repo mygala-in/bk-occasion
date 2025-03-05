@@ -86,7 +86,7 @@ async function deleteOccasion(message) {
   tasks = [];
   const key = redis.transformKey(`occasion_${occasionId}`);
   tasks.push(rdsOccasions.deleteOccasions([occasionId]));
-  tasks.push(redis.del(`${key}_bg_count`));
+  tasks.push(redis.del(`${key}_users_count`));
   tasks.push(redis.del(`${key}_timeline`));
   tasks.push(redis.del(`${key}_assets`));
   tasks.push(redis.del(redis.transformKey(`occasion_${occasion.code}`)));
