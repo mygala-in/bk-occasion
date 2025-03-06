@@ -77,20 +77,6 @@ async function createOccasionEvent(request) {
       },
     }),
   );
-  // tasks.push(
-  //   snsHelper.pushToSNS("emails", {
-  //     service: "email",
-  //     component: "event",
-  //     action: "create",
-  //     data: {
-  //       comment: "new event created",
-  //       occasionId,
-  //       eventId: insertId,
-  //       userId: decoded.id,
-  //       ...body,
-  //     },
-  //   })
-  // );
   tasks.push(
     snsHelper.pushToSNS('notification-bg-tasks', {
       service: 'notification',
@@ -151,25 +137,12 @@ async function updateOccasionEvent(request) {
   ) errors.handleError(401, 'unauthorized');
 
   const meObj = {};
-  if (body.name) meObj.name = body.name;
-  if (body.photo) meObj.photo = body.photo;
-  if (body.description) meObj.description = body.description;
-  if (body.fromTime) meObj.fromTime = common.convertToDate(body.fromTime);
-  if (body.tillTime) meObj.tillTime = common.convertToDate(body.tillTime);
+  Object.assign(meObj, _.pick(body, 'name', 'photo', 'description', 'fromTime', 'tillTime'));
+  if (meObj.fromTime) meObj.fromTime = common.convertToDate(body.fromTime);
+  if (meObj.tillTime) meObj.tillTime = common.convertToDate(body.tillTime);
+
   await Promise.all([
     rdsOEvents.updateEvent(eventId, occasionId, meObj),
-    // snsHelper.pushToSNS("emails", {
-    //   service: "email",
-    //   component: "event",
-    //   action: "update",
-    //   data: {
-    //     comment: "event details updated",
-    //     occasionId,
-    //     eventId,
-    //     userId: decoded.id,
-    //     ...meObj,
-    //   },
-    // }),
     snsHelper.pushToSNS('fcm', {
       service: 'notification',
       component: 'notification',
@@ -189,12 +162,7 @@ async function updateOccasionEvent(request) {
     }),
   ]);
   if (body.fromTime) {
-    await snsHelper.pushToSNS('notification-bg-tasks', {
-      service: 'notification',
-      component: 'event',
-      action: 'edit',
-      data: { occasionId, eventId },
-    });
+    await snsHelper.pushToSNS('notification-bg-tasks', { service: 'notification', component: 'event', action: 'edit', data: { occasionId, eventId } });
   }
   return getOccasionEvent(request);
 }
