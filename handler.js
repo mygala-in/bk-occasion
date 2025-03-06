@@ -127,11 +127,10 @@ async function createNewOccasion(request) {
   }
 
   // * mObj - occasion object
-  const mObj = { creatorId: decoded.id, title: body.title, note: body.note, type: body.type, code, fromTime: common.convertToDate(body.fromTime), locationId: body.locationId };
-  if (body.tillTime) mObj.tillTime = common.convertToDate(body.tillTime);
-  if (body.isPublic) mObj.isPublic = body.isPublic;
-  if (body.extras) mObj.extras = body.extras;
-  if (body.url) mObj.url = body.url;
+  const mObj = { creatorId: decoded.id, code };
+  Object.assign(mObj, _.pick(body, ['title', 'note', 'type', 'fromTime', 'tillTime', 'isPublic', 'extras', 'url', 'side', 'locationId']));
+  if (mObj.fromTime) mObj.fromTime = common.convertToDate(mObj.fromTime);
+  if (mObj.tillTime) mObj.tillTime = common.convertToDate(mObj.tillTime);
 
   logger.info('new occasion object ', mObj);
   const { insertId } = await rdsOccasions.newOccasion(mObj);
