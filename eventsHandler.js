@@ -23,6 +23,8 @@ async function getOccasionEvent(request) {
 
   const event = await rdsOEvents.getEvent(eventId, occasionId);
   logger.info('event ', JSON.stringify(event));
+  if (_.isEmpty(event)) errors.handleError(404, 'event not found');
+
   const extras = await helper.eventExtras(eventId, include);
   Object.assign(event, extras);
   return event;
