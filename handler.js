@@ -137,7 +137,7 @@ async function createNewOccasion(request) {
   const { insertId } = await rdsOccasions.newOccasion(mObj);
 
   // * muObj - occasion user object
-  const muObj = { userId: decoded.id, occasionId: insertId, type: body.type, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
+  const muObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
   await Promise.all([
     rdsOUsers.newUser(muObj),
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
