@@ -15,6 +15,10 @@ async function occasionExtras(occasionId, include) {
       case 'assets':
         resp.assets = await rdsAssets.getParentAssets(`occasion_${occasionId}`);
         break;
+      case 'location':
+        locations = await rdsLocs.getLocationsByPId(`occasion_${occasionId}`);
+        [resp.location] = locations.items;
+        break;
       case 'events':
         resp.events = await rdsOEvents.getEvents(occasionId);
         if (include.includes('assets')) {
