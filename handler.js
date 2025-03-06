@@ -128,7 +128,7 @@ async function createNewOccasion(request) {
 
   // * mObj - occasion object
   const mObj = { creatorId: decoded.id, code };
-  Object.assign(mObj, _.pick(body, ['title', 'note', 'type', 'fromTime', 'tillTime', 'isPublic', 'extras', 'url', 'side', 'locationId']));
+  Object.assign(mObj, _.pick(body, ['title', 'note', 'type', 'fromTime', 'tillTime', 'isPublic', 'extras', 'url', 'locationId']));
   if (mObj.fromTime) mObj.fromTime = common.convertToDate(mObj.fromTime);
   if (mObj.tillTime) mObj.tillTime = common.convertToDate(mObj.tillTime);
 
@@ -137,6 +137,7 @@ async function createNewOccasion(request) {
 
   // * muObj - occasion user object
   const muObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
+  if (body.side) muObj.side = body.side;
   await Promise.all([
     rdsOUsers.newUser(muObj),
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
