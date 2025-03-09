@@ -65,13 +65,13 @@ async function getOccasions(request) {
   const { type } = request.queryStringParameters;
   logger.info({ type });
   const mJoins = await rdsOUsers.getOccasions(decoded.id);
-  const mIds = mJoins.items.map((i) => i.occasionId);
-  logger.info('occasion ids ', mIds);
+  const oIds = mJoins.items.map((i) => i.occasionId);
+  logger.info('occasion ids ', oIds);
   const vIds = mJoins.items.filter((i) => i.status === OCCASION_CONFIG.status.verified).map((i) => i.occasionId);
   logger.info('verified occasion ids ', vIds);
   if (type === 'occasions') {
     const gbIds = []; // groom & bride Ids
-    const [occasions, ouCounts] = await Promise.all([rdsOccasions.getOccasionsIn(mIds), rdsOUsers.getOUsersCountsIn(mIds)]);
+    const [occasions, ouCounts] = await Promise.all([rdsOccasions.getOccasionsIn(oIds), rdsOUsers.getOUsersCountsIn(oIds)]);
     logger.info('occasions ', JSON.stringify(occasions));
     logger.info('ou counts ', JSON.stringify(ouCounts));
     for (let i = 0; i < occasions.count; i += 1) {
@@ -97,8 +97,8 @@ async function getOccasions(request) {
     return occasions;
   }
 
-  if (type === 'events') return rdsOEvents.getEventsIn(mIds);
-  if (type === 'assets') return rdsAssets.getParentAssetsIn(mIds.map((i) => `occasion_${i}`));
+  if (type === 'events') return rdsOEvents.getEventsIn(oIds);
+  if (type === 'assets') return rdsAssets.getParentAssetsIn(oIds.map((i) => `occasion_${i}`));
   if (type === 'users') {
     const oUsers = await rdsOUsers.getOUsersIn(vIds);
     const userIds = oUsers.items.map((user) => user.userId);
