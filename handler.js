@@ -353,6 +353,7 @@ async function invoke(event, context, callback) {
     }
 
     context.callbackWaitsForEmptyEventLoop = false;
+    logger.info('final response ', JSON.stringify(resp));
     return callback(null, { statusCode: 200, headers, body: JSON.stringify(resp) });
   } catch (err) {
     context.callbackWaitsForEmptyEventLoop = false;
