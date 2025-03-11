@@ -67,9 +67,7 @@ async function createOccasionEvent(request) {
         title: 'New Event Added ✨',
         topic: common.getTopicName('occasion', occasionId),
         groupId: APP_NOTIFICATIONS.channels.occasion,
-        subtitle: `${body.name ?? 'New'} event added by @${
-          decoded.username
-        }. Click to see details.`,
+        subtitle: `${body.name ?? 'New'} event added by @${decoded.username}. Click to see details.`,
         payload: {
           screen: `/events/${insertId}`,
           params: { useCache: 'false', occasionId: `${occasionId}` },
@@ -202,6 +200,7 @@ async function getEventAssets(request) {
   logger.info('requested user ', muObj);
   if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
   if (muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+
   return rdsAssets.getParentAssets(`event_${eventId}`);
 }
 
