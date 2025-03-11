@@ -12,7 +12,7 @@ const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const helper = require('./helper');
 
-const { APP_NOTIFICATIONS, ASSET_CONFIG, OCCASION_CONFIG } = constants;
+const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
 
 async function getOccasion(request) {
@@ -162,15 +162,11 @@ async function updateOccasion(request) {
 
   const tasks = [];
   if (body.title || body.url) {
-    logger.info('regenerating links title updated');
-    const [count, occasion] = await Promise.all([rdsOUsers.getTotalUsers(occasionId), rdsOccasions.getOccasion(occasionId)]);
-    logger.info('occasion users count ', count);
-    let image = body.url || occasion.url;
-    if (image) {
-      const config = ASSET_CONFIG.resolutions[0];
-      image = `${process.env.assetsUrl}/${image}/${config.resolution.width}.jpg`;
-    }
-    await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: body.title, url: image, chatId: `GC_${occasion.code}` } });
+    logger.info('occasion chat needs update');
+    const occasion = await rdsOccasions.getOccasion(occasionId);
+    const url = body.url || occasion.url;
+    const title = body.title || occasion.name;
+    await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'edit', data: { userId: decoded.id, username: decoded.username, name: title, url, chatId: `GC_${occasion.code}` } });
   }
 
   if (body.extras?.groomId) {
