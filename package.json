@@ -1,0 +1,39 @@
+{
+	"name": "mygala-bk-occasion-service",
+	"version": "1.0.0",
+	"description": "the backend occasion service for mygala",
+	"main": "handler.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"lint": "node_modules/eslint/bin/eslint.js .",
+		"lint-fix": "node_modules/eslint/bin/eslint.js . --fix",
+		"dev-deploy": "node_modules/serverless/bin/serverless.js deploy --stage dev",
+		"prod-deploy": "node_modules/serverless/bin/serverless.js deploy --stage prod",
+		"local": "node_modules/serverless/bin/serverless.js offline start --stage dev"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:mygala-in/bk-occasion.git"
+	},
+	"author": "dhanush",
+	"license": "ISC",
+	"devDependencies": {
+		"aws-sdk": "^2.925.0",
+		"eslint": "^8.57.0",
+		"eslint-config-airbnb-base": "^15.0.0",
+		"eslint-plugin-import": "^2.29.1",
+		"serverless": "^3.12.0",
+		"serverless-domain-manager": "^6.0.2",
+		"serverless-prune-plugin": "^2.0.1",
+		"serverless-offline": "^13.9.0"
+	},
+	"dependencies": {
+		"ioredis": "^5.5.0",
+		"joi": "^17.13.3",
+		"jsonwebtoken": "^9.0.2",
+		"jwks-rsa": "^3.1.0",
+		"loglevel": "^1.9.2",
+		"mysql2": "^3.12.0",
+		"underscore": "^1.13.1"
+	}
+}
