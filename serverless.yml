@@ -112,7 +112,7 @@ functions:
   rsvp:
     name: ${self:custom.config.envPrefix}-occasion-rsvp-apis
     handler: rsvpsHandler.invoke
-    rsvps:
+    events:
       - http:
           path: /v1/{parentId}/rsvp
           method: any
