@@ -109,6 +109,18 @@ functions:
           path: v1/{occasionId}/event/{eventId}/assets
           method: get
           cors: ${self:custom.customCors}
+  rsvp:
+    name: ${self:custom.config.envPrefix}-occasion-rsvp-apis
+    handler: rsvpsHandler.invoke
+    rsvps:
+      - http:
+          path: /v1/{parentId}/rsvp
+          method: any
+          cors: ${self:custom.customCors}
+      - http:
+          path: /v1/{parentId}/rsvp/list
+          method: any
+          cors: ${self:custom.customCors}
   occasion-bg-tasks:
     timeout: 60
     name: ${self:custom.config.envPrefix}-occasion-bg-tasks
