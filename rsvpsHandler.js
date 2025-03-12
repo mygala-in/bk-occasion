@@ -57,7 +57,7 @@ async function invoke(event, context, callback) {
 
     let resp = {};
     switch (request.resourcePath) {
-      case '/v1/{parentId}/rsvp':
+      case '/v1/rsvp/{parentId}':
         switch (request.httpMethod) {
           case 'GET': resp = await getRsvp(request);
             break;
@@ -68,7 +68,7 @@ async function invoke(event, context, callback) {
           default: errors.handleError(400, 'invalid request path');
         }
         break;
-      case '/v1/{parentId}/rsvp/list':
+      case '/v1/rsvp/{parentId}/list':
         resp = await getRsvpList(request);
         break;
       default: errors.handleError(400, 'invalid request path');
