@@ -114,12 +114,12 @@ functions:
     handler: rsvpsHandler.invoke
     events:
       - http:
-          path: /v1/rsvp/{parentId}
+          path: /v1/{parentId}/rsvp
           method: any
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/rsvp/{parentId}list
-          method: any
+          path: /v1/{parentId}/rsvp/list
+          method: get
           cors: ${self:custom.customCors}
   occasion-bg-tasks:
     timeout: 60
