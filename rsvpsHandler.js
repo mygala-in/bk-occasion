@@ -8,7 +8,7 @@ async function getRsvpList(request) {
   const { pathParameters } = request;
   const { parentId } = pathParameters;
   logger.info('getRsvpList request for parentId:', parentId);
-  const rsvpList = await rdsRsvps.getRsvpList(parseInt(parentId, 10));
+  const rsvpList = await rdsRsvps.getRsvpList(parentId);
   return rsvpList;
 }
 
