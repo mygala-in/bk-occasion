@@ -135,7 +135,7 @@ async function updateOccasionEvent(request) {
   ) errors.handleError(401, 'unauthorized');
 
   const meObj = {};
-  Object.assign(meObj, _.pick(body, 'name', 'photo', 'description', 'fromTime', 'tillTime'));
+  Object.assign(meObj, _.pick(body, 'name', 'locationId', 'photo', 'description', 'fromTime', 'tillTime'));
   if (meObj.fromTime) meObj.fromTime = common.convertToDate(body.fromTime);
   if (meObj.tillTime) meObj.tillTime = common.convertToDate(body.tillTime);
 
