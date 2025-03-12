@@ -30,13 +30,8 @@ async function newOrUpdateRsvp(request) {
   if (!status || !['Y', 'N', 'M'].includes(status)) {
     errors.handleError(400, 'invalid or missing rsvp status');
   }
-  const rsvpObj = {
-    parentId,
-    userId: decoded.id,
-    rsvp: status,
-  };
-  logger.info('newOrUpdateRsvp request', rsvpObj);
-  await rdsRsvps.newOrUpdateRsvp(rsvpObj);
+  logger.info('newOrUpdateRsvp request', { parentId, userId: decoded.id, status });
+  await rdsRsvps.newOrUpdateRsvp(parentId, decoded.id, status);
   return getRsvp(request);
 }
 
@@ -59,8 +54,6 @@ async function invoke(event, context, callback) {
     switch (request.resourcePath) {
       case '/v1/rsvp/{parentId}':
         switch (request.httpMethod) {
-          case 'GET': resp = await getRsvp(request);
-            break;
           case 'PUT': resp = await newOrUpdateRsvp(request);
             break;
           case 'DELETE': resp = await deleteRsvp(request);
