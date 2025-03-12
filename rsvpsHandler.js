@@ -30,8 +30,9 @@ async function newOrUpdateRsvp(request) {
   if (!status || !['Y', 'N', 'M'].includes(status)) {
     errors.handleError(400, 'invalid or missing rsvp status');
   }
-  logger.info('newOrUpdateRsvp request', { parentId, userId: decoded.id, status });
-  await rdsRsvps.newOrUpdateRsvp(parentId, decoded.id, status);
+  const obj = { parentId, userId: decoded.id, status };
+  logger.info('newOrUpdateRsvp request', { obj });
+  await rdsRsvps.newOrUpdateRsvp(obj);
   return getRsvp(request);
 }
 
