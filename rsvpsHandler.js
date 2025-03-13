@@ -1,49 +1,70 @@
+const _ = require('underscore');
 const logger = require('./bk-utils/logger');
 const access = require('./bk-utils/access');
 const errors = require('./bk-utils/errors');
 const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
+const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
+const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
+const { OCCASION_CONFIG } = require('./bk-utils/constants');
+
+
+async function validate(decoded, parentId) {
+  logger.info('validating request');
+  const [resource, ...entityIdx] = parentId.split('_');
+  const entityId = entityIdx.join('_');
+  logger.info('parent resource', resource);
+  const entity = await rdsOccasions.getOccasion(entityId);
+  if (_.isEmpty(entity)) errors.handleError(404, 'Occasion not found');
+  if (!entity.ispublic) {
+    const user = await rdsOUsers.getUser(entityId, decoded.id);
+    if (_.isEmpty(user)) { errors.handleError(404, 'no association with requested occasion'); }
+    if (user.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorised');
+  }
+}
 
 
 async function getRsvpList(request) {
-  const { pathParameters } = request;
-  const { parentId } = pathParameters;
+  const { decoded } = request;
+  const { parentId } = request.pathParameters;
   logger.info('getRsvpList request for parentId:', parentId);
+  await validate(decoded, parentId);
   const rsvpList = await rdsRsvps.getRsvpList(parentId);
   return rsvpList;
 }
+
 
 async function getRsvp(request) {
   const { decoded, pathParameters } = request;
   const { parentId } = pathParameters;
   logger.info('getRsvp request', { parentId, userId: decoded.id });
+  await validate(decoded, parentId);
   const rsvp = await rdsRsvps.getRsvp(parentId, decoded.id);
-  if (!rsvp) {
-    errors.handleError('RSVP not found');
-  }
+  if (_.isEmpty(rsvp)) { errors.handleError(404, 'RSVP not found'); }
   return rsvp;
 }
 
+
 async function newOrUpdateRsvp(request) {
-  const { decoded, pathParameters, queryStringParameters } = request;
-  const { parentId } = pathParameters;
-  const status = queryStringParameters && queryStringParameters.status;
-  if (!status || !['Y', 'N', 'M'].includes(status)) {
-    errors.handleError(400, 'invalid or missing rsvp status');
-  }
+  const { decoded } = request;
+  const { parentId } = request.pathParameters;
+  const { status } = request.queryStringParameters;
   const obj = { parentId, userId: decoded.id, status };
   logger.info('newOrUpdateRsvp request', { obj });
+  await validate(decoded, parentId);
   await rdsRsvps.newOrUpdateRsvp(obj);
   return getRsvp(request);
 }
+
 
 async function deleteRsvp(request) {
   const { decoded, pathParameters } = request;
   const { parentId } = pathParameters;
   logger.info('deleteRsvp request', { parentId, userId: decoded.id });
+  const rsvp = await rdsRsvps.getRsvp(request);
+  if (_.isEmpty(rsvp)) errors.handleError(404, 'no association with requested rsvp');
   await rdsRsvps.deleteRsvp(parentId, decoded.id);
   return { success: true };
 }
-
 
 
 async function invoke(event, context, callback) {
@@ -55,13 +76,19 @@ async function invoke(event, context, callback) {
     switch (request.resourcePath) {
       case '/v1/rsvp/{parentId}':
         switch (request.httpMethod) {
+          case 'GET': resp = await getRsvp(request);
+            break;
+
           case 'PUT': resp = await newOrUpdateRsvp(request);
             break;
+
           case 'DELETE': resp = await deleteRsvp(request);
             break;
+
           default: errors.handleError(400, 'invalid request path');
         }
         break;
+
       case '/v1/rsvp/{parentId}/list':
         resp = await getRsvpList(request);
         break;
