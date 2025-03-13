@@ -34,8 +34,8 @@ async function getRsvpList(request) {
 
 
 async function getRsvp(request) {
-  const { decoded, pathParameters } = request;
-  const { parentId } = pathParameters;
+  const { decoded } = request;
+  const { parentId } = request.pathParameters;
   logger.info('getRsvp request', { parentId, userId: decoded.id });
   await validate(decoded, parentId);
   const rsvp = await rdsRsvps.getRsvp(parentId, decoded.id);
