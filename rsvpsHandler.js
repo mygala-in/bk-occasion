@@ -60,7 +60,7 @@ async function deleteRsvp(request) {
   const { decoded, pathParameters } = request;
   const { parentId } = pathParameters;
   logger.info('deleteRsvp request', { parentId, userId: decoded.id });
-  const rsvp = await rdsRsvps.getRsvp(request);
+  const rsvp = await rdsRsvps.getRsvp(parentId, decoded.id);
   if (_.isEmpty(rsvp)) errors.handleError(404, 'no association with requested rsvp');
   await rdsRsvps.deleteRsvp(parentId, decoded.id);
   return { success: true };
