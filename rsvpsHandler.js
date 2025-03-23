@@ -3,7 +3,6 @@ const logger = require('./bk-utils/logger');
 const access = require('./bk-utils/access');
 const errors = require('./bk-utils/errors');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
-const constants = require('./bk-utils/constants');
 const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
@@ -17,7 +16,7 @@ async function validate(decoded, parentId) {
   logger.info('parent resource', resource);
   const entity = await rdsOccasions.getOccasion(entityId);
   if (_.isEmpty(entity)) errors.handleError(404, 'Occasion not found');
-  if (!entity.ispublic) {
+  if (!entity.isPublic) {
     const user = await rdsOUsers.getUser(entityId, decoded.id);
     if (_.isEmpty(user)) { errors.handleError(404, 'no association with requested occasion'); }
     if (user.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorised');
@@ -33,16 +32,15 @@ async function getRsvpList(request) {
   if (include !== 'user') return rsvpList;
   const userIds = rsvpList.items.map((rsvp) => rsvp.userId);
   if (_.isEmpty(userIds)) return rsvpList;
-  const extras = await rdsUsers.getUserFieldsIn(userIds, [...constants.MINI_PROFILE_FIELDS]);
+  const extras = await rdsUsers.getUserFieldsIn(userIds, ['id', 'username', 'photo']);
   logger.info('extras', extras);
   const extrasMap = {};
   extras.items.forEach((item) => { extrasMap[item.id] = item; });
 
-  rsvpList.items.forEach((item) => {
-    const extra = extrasMap[item.userId];
-    if (extra) { Object.assign(item, extra); }
-  });
-
+  rsvpList.items = rsvpList.items.map((item) => ({
+    ...item,
+    user: extrasMap[item.userId],
+  }));
   return rsvpList;
 }
 
