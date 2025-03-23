@@ -30,9 +30,10 @@ async function getRsvpList(request) {
   const include = _.get(request.queryStringParameters, 'include', '');
   logger.info('getRsvpList request for parentId:', parentId);
   const rsvpList = await rdsRsvps.getRsvpList(parentId);
+  logger.info('rsvpList', rsvpList);
   if (include === 'user') {
     const userIds = rsvpList.items.map((rsvp) => rsvp.userId);
-    const extras = await rdsUsers.getUserFieldsIn(userIds, ...constants.MINI_PROFILE_FIELDS);
+    const extras = await rdsUsers.getUserFieldsIn(userIds, [...constants.MINI_PROFILE_FIELDS]);
     logger.info('extras', extras);
     if (!_.isEmpty(extras)) Object.assign(rsvpList, extras);
   }
