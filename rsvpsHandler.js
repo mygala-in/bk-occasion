@@ -31,12 +31,12 @@ async function getRsvpList(request) {
   logger.info('getRsvpList request for parentId:', parentId);
   const rsvpList = await rdsRsvps.getRsvpList(parentId);
   logger.info('rsvpList', rsvpList);
-  if (include === 'user') {
-    const userIds = rsvpList.items.map((rsvp) => rsvp.userId);
-    const extras = await rdsUsers.getUserFieldsIn(userIds, [...constants.MINI_PROFILE_FIELDS]);
-    logger.info('extras', extras);
-    if (!_.isEmpty(extras)) Object.assign(rsvpList, extras);
-  }
+  if (!include === 'user') return rsvpList;
+  const userIds = rsvpList.items.map((rsvp) => rsvp.userId);
+  if (_.isEmpty(userIds)) return rsvpList;
+  const extras = await rdsUsers.getUserFieldsIn(userIds, [...constants.MINI_PROFILE_FIELDS]);
+  logger.info('extras', extras);
+  if (!_.isEmpty(extras)) rsvpList.items.forEach((item, index) => Object.assign(item, extras[index]));
   return rsvpList;
 }
 
