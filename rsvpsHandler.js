@@ -36,7 +36,7 @@ async function getRsvpList(request) {
   const extras = await rdsUsers.getUserFieldsIn(userIds, [...constants.MINI_PROFILE_FIELDS]);
   logger.info('extras', extras);
   const extrasMap = {};
-  extras.items.forEach((item) => { extrasMap[item.userId] = item; });
+  extras.items.forEach((item) => { extrasMap[item.id] = item; });
 
   rsvpList.items.forEach((item) => {
     const extra = extrasMap[item.userId];
