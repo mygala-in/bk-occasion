@@ -28,7 +28,6 @@ async function validate(decoded, parentId) {
 async function getRsvpList(request) {
   const { parentId } = request.pathParameters;
   const include = _.get(request.queryStringParameters, 'include', '');
-  logger.info('getRsvpList request for parentId:', parentId);
   const rsvpList = await rdsRsvps.getRsvpList(parentId);
   logger.info('rsvpList', rsvpList);
   if (include !== 'user') return rsvpList;
@@ -36,7 +35,14 @@ async function getRsvpList(request) {
   if (_.isEmpty(userIds)) return rsvpList;
   const extras = await rdsUsers.getUserFieldsIn(userIds, [...constants.MINI_PROFILE_FIELDS]);
   logger.info('extras', extras);
-  if (!_.isEmpty(extras)) rsvpList.items.forEach((item, index) => Object.assign(item, extras[index]));
+  const extrasMap = {};
+  extras.items.forEach((item) => { extrasMap[item.userId] = item; });
+
+  rsvpList.items.forEach((item) => {
+    const extra = extrasMap[item.userId];
+    if (extra) { Object.assign(item, extra); }
+  });
+
   return rsvpList;
 }
 
