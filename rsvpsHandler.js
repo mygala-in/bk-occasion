@@ -2,6 +2,8 @@ const _ = require('underscore');
 const logger = require('./bk-utils/logger');
 const access = require('./bk-utils/access');
 const errors = require('./bk-utils/errors');
+const rdsUsers = require('./bk-utils/rds/rds.users.helper');
+const constants = require('./bk-utils/constants');
 const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
@@ -24,11 +26,16 @@ async function validate(decoded, parentId) {
 
 
 async function getRsvpList(request) {
-  const { decoded } = request;
   const { parentId } = request.pathParameters;
+  const include = _.get(request.queryStringParameters, 'include', '');
   logger.info('getRsvpList request for parentId:', parentId);
-  await validate(decoded, parentId);
   const rsvpList = await rdsRsvps.getRsvpList(parentId);
+  if (include === 'user') {
+    const userIds = rsvpList.items.map((rsvp) => rsvp.userId);
+    const extras = await rdsUsers.getUserFieldsIn(userIds, ...constants.MINI_PROFILE_FIELDS);
+    logger.info('extras', extras);
+    if (!_.isEmpty(extras)) Object.assign(rsvpList, extras);
+  }
   return rsvpList;
 }
 
