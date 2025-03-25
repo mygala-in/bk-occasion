@@ -345,6 +345,10 @@ async function invoke(event, context, callback) {
         resp = await getOccasionUsers(request);
         break;
 
+      case '/v1/{occasionId}/preview':
+        resp = await getOccasion(request);
+        break;
+
       default: errors.handleError(400, 'invalid request path');
     }
 
