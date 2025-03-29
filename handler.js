@@ -84,7 +84,7 @@ async function getOccasionByCode(request) {
   logger.info('requested user ', muObj);
   occasion.ouser = muObj;
 
-  const uObj = await rdsUsers.getUserFieldsIn(occasion.creatorId, constants.MINI_PROFILE_FIELDS);
+  const uObj = await rdsUsers.getUserFieldsIn([occasion.creatorId], constants.MINI_PROFILE_FIELDS);
   logger.info('requested user ', muObj);
   occasion.user = uObj;
 
