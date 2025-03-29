@@ -90,7 +90,7 @@ functions:
           method: get
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{code}/preview
+          path: /v1/preview/{code}
           method: get
           cors: ${self:custom.customCors}
   event:
