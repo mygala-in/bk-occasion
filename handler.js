@@ -80,11 +80,11 @@ async function getOccasionByCode(request) {
     logger.info('groom & bride ids ', JSON.stringify(gbIds));
   }
 
-  const muObj = await rdsOUsers.getUser(occasion.id, decoded.id);
+  const muObj = await rdsOUsers.getUser(occasion.id, occasion.creatorId);
   logger.info('requested user ', muObj);
   occasion.ouser = muObj;
 
-  const uObj = await rdsUsers.getUserFieldsIn(userIds, constants.MINI_PROFILE_FIELDS);
+  const uObj = await rdsUsers.getUserFieldsIn(occasion.creatorId, constants.MINI_PROFILE_FIELDS);
   logger.info('requested user ', muObj);
   occasion.user = uObj;
 
