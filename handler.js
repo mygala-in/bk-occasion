@@ -61,48 +61,48 @@ async function getOccasion(request) {
 }
 
 
-// async function getOccasionByCode(request) {
-//   const { pathParameters, queryStringParameters } = request;
-//   const { code } = pathParameters;
-//   let include = [];
-//   if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include.split(',');
+async function getOccasionByCode(request) {
+  const { pathParameters, queryStringParameters } = request;
+  const { code } = pathParameters;
+  let include = [];
+  if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include.split(',');
 
-//   logger.info('get occasion request for ', { code, include });
-//   const occasion = await rdsOccasions.getOccasionByCode(code);
-//   logger.info('occasion ', JSON.stringify(occasion));
-//   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
-//   const gbIds = []; // groom & bride Ids
-//   if (_.has(occasion.extras, 'brideId')) {
-//     if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
-//   }
-//   if (_.has(occasion.extras, 'groomId')) {
-//     if (!gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
-//     logger.info('groom & bride ids ', JSON.stringify(gbIds));
-//   }
+  logger.info('get occasion request for ', { code, include });
+  const occasion = await rdsOccasions.getOccasionByCode(code);
+  logger.info('occasion ', JSON.stringify(occasion));
+  if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+  const gbIds = []; // groom & bride Ids
+  if (_.has(occasion.extras, 'brideId')) {
+    if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+  }
+  if (_.has(occasion.extras, 'groomId')) {
+    if (!gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+    logger.info('groom & bride ids ', JSON.stringify(gbIds));
+  }
 
-//   const muObj = await rdsOUsers.getUser(occasion.id, occasion.creatorId);
-//   logger.info('requested user ', muObj);
-//   occasion.ouser = muObj;
+  const muObj = await rdsOUsers.getUser(occasion.id, occasion.creatorId);
+  logger.info('requested user ', muObj);
+  occasion.ouser = muObj;
 
-//   const [ouCounts, extras, gbUsers] = await Promise.all([
-//     rdsOUsers.getOUsersCounts(occasion.id),
-//     helper.occasionExtras(occasion.id, include),
-//     rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
-//   ]);
+  const [ouCounts, extras, gbUsers] = await Promise.all([
+    rdsOUsers.getOUsersCounts(occasion.id),
+    helper.occasionExtras(occasion.id, include),
+    rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
+  ]);
 
-//   if (_.has(occasion.extras, 'brideId')) {
-//     [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
-//   }
-//   if (_.has(occasion.extras, 'groomId')) {
-//     [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
-//   }
+  if (_.has(occasion.extras, 'brideId')) {
+    [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
+  }
+  if (_.has(occasion.extras, 'groomId')) {
+    [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  }
 
-//   logger.info('ou counts ', JSON.stringify(ouCounts));
-//   occasion.counts = ouCounts;
-//   logger.info('extras ', JSON.stringify(extras));
-//   Object.assign(occasion, { ...extras });
-//   return occasion;
-// }
+  logger.info('ou counts ', JSON.stringify(ouCounts));
+  occasion.counts = ouCounts;
+  logger.info('extras ', JSON.stringify(extras));
+  Object.assign(occasion, { ...extras });
+  return occasion;
+}
 
 
 async function getOccasions(request) {
@@ -390,9 +390,9 @@ async function invoke(event, context, callback) {
         resp = await getOccasionUsers(request);
         break;
 
-        // case '/v1/{code}/preview':
-        //   resp = await getOccasionByCode(request);
-        //   break;
+      case '/v1/{code}/preview':
+        resp = await getOccasionByCode(request);
+        break;
 
       default: errors.handleError(400, 'invalid request path');
     }
