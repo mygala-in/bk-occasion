@@ -86,7 +86,7 @@ async function getOccasionByCode(request) {
 
   const uObj = await rdsUsers.getUserFieldsIn([occasion.creatorId], constants.MINI_PROFILE_FIELDS);
   logger.info('requested user ', muObj);
-  occasion.user = uObj;
+  occasion.user = uObj.items;
 
   const [ouCounts, extras, gbUsers] = await Promise.all([
     rdsOUsers.getOUsersCounts(occasion.id),
