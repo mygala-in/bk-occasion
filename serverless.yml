@@ -89,10 +89,10 @@ functions:
           path: /v1/{occasionId}/assets
           method: get
           cors: ${self:custom.customCors}
-      - http:
-          path: /v1/{code}/preview
-          method: get
-          cors: ${self:custom.customCors}
+      # - http:
+      #     path: /v1/{code}/preview
+      #     method: get
+      #     cors: ${self:custom.customCors}
   event:
     name: ${self:custom.config.envPrefix}-occasion-event-apis
     handler: eventsHandler.invoke
