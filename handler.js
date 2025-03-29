@@ -63,12 +63,12 @@ async function getOccasion(request) {
 
 async function getOccasionByCode(request) {
   const { pathParameters, queryStringParameters } = request;
-  const { code } = pathParameters;
+  const { occasionId } = pathParameters;
   let include = [];
   if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include.split(',');
 
-  logger.info('get occasion request for ', { code, include });
-  const occasion = await rdsOccasions.getOccasionByCode(code);
+  logger.info('get occasion request for ', { occasionId, include });
+  const occasion = await rdsOccasions.getOccasionByCode(occasionId);
   logger.info('occasion ', JSON.stringify(occasion));
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
   const gbIds = []; // groom & bride Ids
@@ -390,7 +390,7 @@ async function invoke(event, context, callback) {
         resp = await getOccasionUsers(request);
         break;
 
-      case '/v1/preview/{code}':
+      case '/v1/{occasionId}/preview':
         resp = await getOccasionByCode(request);
         break;
 
