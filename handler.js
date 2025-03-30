@@ -394,7 +394,7 @@ async function invoke(event, context, callback) {
         resp = await getOccasionUsers(request);
         break;
 
-      case '/v1/{occasionId}/preview':
+      case '/v1/{occasionId}/invite':
         resp = await getOccasionByCode(request);
         break;
 
