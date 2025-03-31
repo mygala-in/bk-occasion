@@ -353,6 +353,23 @@ async function getOccasionUsers(request) {
   return wUsers;
 }
 
+async function searchOccasions(request) {
+  const { queryStringParameters } = request;
+  const include = _.get(queryStringParameters, 'include')?.split(',');
+  const occasionTitle = _.get(queryStringParameters, 'title', '');
+
+  const occasions = await rdsOccasions.searchOccasion(occasionTitle);
+  if (_.isEmpty(occasions)) errors.handleError(404, 'no occasion found');
+  if (include && !_.isEmpty(include)) {
+    const tasks = [];
+    occasions.items.forEach((v) => tasks.push(helper.occasionExtras(v, include)));
+    const extras = await Promise.all(tasks);
+    for (let i = 0; i < occasions.count; i += 1) {
+      Object.assign(occasions.items[i], extras[i]);
+    }
+  }
+  return occasions;
+}
 
 
 async function invoke(event, context, callback) {
@@ -396,6 +413,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/invite':
         resp = await getOccasionByCode(request);
+        break;
+
+      case '/v1/search':
+        resp = await searchOccasions(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
