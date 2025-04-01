@@ -11,6 +11,7 @@ const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const helper = require('./helper');
+const redis = require('./bk-utils/redis.helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -39,6 +40,54 @@ async function getOccasion(request) {
     logger.info('requested user ', muObj);
     occasion.ouser = muObj;
   }
+  const [ouCounts, extras, gbUsers] = await Promise.all([
+    rdsOUsers.getOUsersCounts(occasion.id),
+    helper.occasionExtras(occasion.id, include),
+    rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
+  ]);
+
+  if (_.has(occasion.extras, 'brideId')) {
+    [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
+  }
+  if (_.has(occasion.extras, 'groomId')) {
+    [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  }
+
+  logger.info('ou counts ', JSON.stringify(ouCounts));
+  occasion.counts = ouCounts;
+  logger.info('extras ', JSON.stringify(extras));
+  Object.assign(occasion, { ...extras });
+  return occasion;
+}
+
+
+async function getOccasionByCode(request) {
+  const { pathParameters, queryStringParameters } = request;
+  const { occasionId } = pathParameters;
+  let include = [];
+  if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include.split(',');
+
+  logger.info('get occasion request for ', { occasionId, include });
+  const occasion = await rdsOccasions.getOccasionByCode(occasionId);
+  logger.info('occasion ', JSON.stringify(occasion));
+  if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+  const gbIds = []; // groom & bride Ids
+  if (_.has(occasion.extras, 'brideId')) {
+    if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+  }
+  if (_.has(occasion.extras, 'groomId')) {
+    if (!gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+    logger.info('groom & bride ids ', JSON.stringify(gbIds));
+  }
+
+  const muObj = await rdsOUsers.getUser(occasion.id, occasion.creatorId);
+  logger.info('requested user ', muObj);
+  occasion.ouser = muObj;
+
+  const uObj = await rdsUsers.getUserFieldsIn([occasion.creatorId], constants.MINI_PROFILE_FIELDS);
+  logger.info('requested user ', muObj);
+  occasion.user = uObj.items;
+
   const [ouCounts, extras, gbUsers] = await Promise.all([
     rdsOUsers.getOUsersCounts(occasion.id),
     helper.occasionExtras(occasion.id, include),
@@ -146,7 +195,7 @@ async function createNewOccasion(request) {
   await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${insertId}`, type: 'join', status: 'A' } });
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
-
+  await redis.set('{occasion}_recent_id', JSON.stringify(insertId));
   return getOccasion(request);
 }
 
@@ -304,6 +353,23 @@ async function getOccasionUsers(request) {
   return wUsers;
 }
 
+async function searchOccasions(request) {
+  const { queryStringParameters } = request;
+  const include = _.get(queryStringParameters, 'include')?.split(',');
+  const occasionTitle = _.get(queryStringParameters, 'title', '');
+
+  const occasions = await rdsOccasions.searchOccasion(occasionTitle);
+  if (_.isEmpty(occasions)) errors.handleError(404, 'no occasion found');
+  if (include && !_.isEmpty(include)) {
+    const tasks = [];
+    occasions.items.forEach((v) => tasks.push(helper.occasionExtras(v.id, include)));
+    const extras = await Promise.all(tasks);
+    for (let i = 0; i < occasions.count; i += 1) {
+      Object.assign(occasions.items[i], extras[i]);
+    }
+  }
+  return occasions;
+}
 
 
 async function invoke(event, context, callback) {
@@ -343,6 +409,14 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/users':
         resp = await getOccasionUsers(request);
+        break;
+
+      case '/v1/{occasionId}/invite':
+        resp = await getOccasionByCode(request);
+        break;
+
+      case '/v1/search':
+        resp = await searchOccasions(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
