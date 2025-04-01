@@ -362,7 +362,7 @@ async function searchOccasions(request) {
   if (_.isEmpty(occasions)) errors.handleError(404, 'no occasion found');
   if (include && !_.isEmpty(include)) {
     const tasks = [];
-    occasions.items.forEach((v) => tasks.push(helper.occasionExtras(v, include)));
+    occasions.items.forEach((v) => tasks.push(helper.occasionExtras(v.id, include)));
     const extras = await Promise.all(tasks);
     for (let i = 0; i < occasions.count; i += 1) {
       Object.assign(occasions.items[i], extras[i]);
