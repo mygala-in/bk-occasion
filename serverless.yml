@@ -89,6 +89,14 @@ functions:
           path: /v1/{occasionId}/assets
           method: get
           cors: ${self:custom.customCors}
+      - http:
+          path: /v1/{occasionId}/invite
+          method: get
+          cors: ${self:custom.customCors}
+      - http:
+          path: /v1/search
+          method: get
+          cors: ${self:custom.customCors}
   event:
     name: ${self:custom.config.envPrefix}-occasion-event-apis
     handler: eventsHandler.invoke
@@ -107,6 +115,18 @@ functions:
           cors: ${self:custom.customCors}
       - http:
           path: v1/{occasionId}/event/{eventId}/assets
+          method: get
+          cors: ${self:custom.customCors}
+  rsvp:
+    name: ${self:custom.config.envPrefix}-occasion-rsvp-apis
+    handler: rsvpsHandler.invoke
+    events:
+      - http:
+          path: /v1/rsvp/{parentId}
+          method: any
+          cors: ${self:custom.customCors}
+      - http:
+          path: /v1/rsvp/{parentId}/list
           method: get
           cors: ${self:custom.customCors}
   occasion-bg-tasks:
