@@ -64,7 +64,7 @@ async function generateRsvp(parentId) {
     recentRsvps.map((rsvp) => rdsUsers.getUserFields(rsvp.userId, MINI_PROFILE_FIELDS)),
   );
   const obj = { gCount, users: recentRsvpsUsers, totalCount: rsvps.count - 5 };
-  await redis.set(`${redis.transformKey(parentId)}_rsvps_summary`, JSON.stringify(obj), REDIS_CONFIG.rsvp);
+  await redis.set(`${redis.transformKey(parentId)}_rsvp_summary`, JSON.stringify(obj), REDIS_CONFIG.rsvp);
   return { entity: 'rsvp', ...obj };
 }
 
@@ -135,4 +135,5 @@ async function invoke(event, context, callback) {
 
 module.exports = {
   invoke,
+  generateRsvp,
 };

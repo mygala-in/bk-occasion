@@ -10,6 +10,7 @@ const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+const rsvps = require('./rsvpsHandler');
 const helper = require('./helper');
 const redis = require('./bk-utils/redis.helper');
 
@@ -80,19 +81,16 @@ async function getOccasionByCode(request) {
     logger.info('groom & bride ids ', JSON.stringify(gbIds));
   }
 
-  const muObj = await rdsOUsers.getUser(occasion.id, occasion.creatorId);
-  logger.info('requested user ', muObj);
-  occasion.ouser = muObj;
-
-  const uObj = await rdsUsers.getUserFieldsIn([occasion.creatorId], constants.MINI_PROFILE_FIELDS);
-  logger.info('requested user ', muObj);
-  occasion.user = uObj.items;
-
-  const [ouCounts, extras, gbUsers] = await Promise.all([
+  const [ouObj, uObj, ouCounts, extras, gbUsers] = await Promise.all([
+    rdsOUsers.getUser(occasion.id, occasion.creatorId),
+    rdsUsers.getUserFieldsIn([occasion.creatorId], constants.MINI_PROFILE_FIELDS),
     rdsOUsers.getOUsersCounts(occasion.id),
     helper.occasionExtras(occasion.id, include),
     rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
   ]);
+
+  occasion.ouser = ouObj;
+  occasion.user = uObj.items;
 
   if (_.has(occasion.extras, 'brideId')) {
     [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
@@ -100,7 +98,8 @@ async function getOccasionByCode(request) {
   if (_.has(occasion.extras, 'groomId')) {
     [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
   }
-
+  occasion.rsvpSummary = redis.get(`{occasion}_${occasion.id}_rsvp_summary`, 'json');
+  if (!occasion.rsvpSummary) occasion.rsvpSummary = rsvps.generateRsvp(`occasion_${occasion.id}`);
   logger.info('ou counts ', JSON.stringify(ouCounts));
   occasion.counts = ouCounts;
   logger.info('extras ', JSON.stringify(extras));
@@ -353,24 +352,6 @@ async function getOccasionUsers(request) {
   return wUsers;
 }
 
-async function searchOccasions(request) {
-  const { queryStringParameters } = request;
-  const include = _.get(queryStringParameters, 'include')?.split(',');
-  const occasionTitle = _.get(queryStringParameters, 'title', '');
-
-  const occasions = await rdsOccasions.searchOccasion(occasionTitle);
-  if (_.isEmpty(occasions)) errors.handleError(404, 'no occasion found');
-  if (include && !_.isEmpty(include)) {
-    const tasks = [];
-    occasions.items.forEach((v) => tasks.push(helper.occasionExtras(v.id, include)));
-    const extras = await Promise.all(tasks);
-    for (let i = 0; i < occasions.count; i += 1) {
-      Object.assign(occasions.items[i], extras[i]);
-    }
-  }
-  return occasions;
-}
-
 
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
@@ -413,10 +394,6 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/invite':
         resp = await getOccasionByCode(request);
-        break;
-
-      case '/v1/search':
-        resp = await searchOccasions(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
