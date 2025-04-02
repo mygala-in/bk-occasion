@@ -10,6 +10,7 @@ const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+const redis = require('./bk-utils/redis.helper');
 const helper = require('./helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
@@ -144,9 +145,10 @@ async function createNewOccasion(request) {
   ]);
 
   await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${insertId}`, type: 'join', status: 'A' } });
+  const oRecent = { title: body.title, url: body.title };
+  await redis.set('{occasion}_recent', JSON.stringify(oRecent));
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
-
   return getOccasion(request);
 }
 
