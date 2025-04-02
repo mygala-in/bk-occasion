@@ -6,7 +6,8 @@ const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
-const { OCCASION_CONFIG } = require('./bk-utils/constants');
+const redis = require('./bk-utils/redis.helper');
+const { OCCASION_CONFIG, REDIS_CONFIG, MINI_PROFILE_FIELDS } = require('./bk-utils/constants');
 
 
 async function validate(decoded, parentId) {
@@ -32,15 +33,11 @@ async function getRsvpList(request) {
   if (include !== 'user') return rsvpList;
   const userIds = rsvpList.items.map((rsvp) => rsvp.userId);
   if (_.isEmpty(userIds)) return rsvpList;
-  const extras = await rdsUsers.getUserFieldsIn(userIds, ['id', 'username', 'photo']);
+  const extras = await rdsUsers.getUserFieldsIn(userIds, [MINI_PROFILE_FIELDS]);
   logger.info('extras', extras);
   const extrasMap = {};
   extras.items.forEach((item) => { extrasMap[item.id] = item; });
-
-  rsvpList.items = rsvpList.items.map((item) => ({
-    ...item,
-    user: extrasMap[item.userId],
-  }));
+  rsvpList.items = rsvpList.items.map((item) => ({ ...item, user: extrasMap[item.userId] }));
   return rsvpList;
 }
 
@@ -56,6 +53,22 @@ async function getRsvp(request) {
 }
 
 
+async function generateRsvp(parentId) {
+  const rsvps = await getRsvpList({ pathParameters: { parentId } });
+  let gCount = 0;
+  rsvps.forEach((rsvp) => {
+    if (rsvp.status === 'Y') gCount += 1;
+  });
+  const recentRsvps = await rdsOccasions.getRecentRsvps(parentId);
+  const recentRsvpsUsers = await Promise.all(
+    recentRsvps.map((rsvp) => rdsUsers.getUserFields(rsvp.userId, MINI_PROFILE_FIELDS)),
+  );
+  const obj = { gCount, users: recentRsvpsUsers, totalCount: rsvps.count - 5 };
+  await redis.set(`${redis.transformKey(parentId)}_rsvps_summary`, JSON.stringify(obj), REDIS_CONFIG.rsvp);
+  return { entity: 'rsvp', ...obj };
+}
+
+
 async function newOrUpdateRsvp(request) {
   const { decoded } = request;
   const { parentId } = request.pathParameters;
@@ -64,6 +77,7 @@ async function newOrUpdateRsvp(request) {
   logger.info('newOrUpdateRsvp request', { obj });
   await validate(decoded, parentId);
   await rdsRsvps.newOrUpdateRsvp(obj);
+  await generateRsvp(parentId);
   return getRsvp(request);
 }
 
