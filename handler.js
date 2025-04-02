@@ -83,15 +83,14 @@ async function getOccasionByCode(request) {
 
   const [ouObj, uObj, ouCounts, extras, gbUsers] = await Promise.all([
     rdsOUsers.getUser(occasion.id, occasion.creatorId),
-    rdsUsers.getUserFieldsIn([occasion.creatorId], constants.MINI_PROFILE_FIELDS),
+    rdsUsers.getUserFields(occasion.creatorId, constants.MINI_PROFILE_FIELDS),
     rdsOUsers.getOUsersCounts(occasion.id),
     helper.occasionExtras(occasion.id, include),
     rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
   ]);
 
   occasion.ouser = ouObj;
-  occasion.user = uObj.items;
-
+  occasion.user = uObj;
   if (_.has(occasion.extras, 'brideId')) {
     [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
   }
