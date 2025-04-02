@@ -145,7 +145,7 @@ async function createNewOccasion(request) {
   ]);
 
   await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${insertId}`, type: 'join', status: 'A' } });
-  const oRecent = { title: body.title, url: body.title };
+  const oRecent = { title: body.title, url: body.url };
   await redis.set('{occasion}_recent', JSON.stringify(oRecent));
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
