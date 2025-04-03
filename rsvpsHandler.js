@@ -59,7 +59,7 @@ async function generateRsvp(parentId) {
   rsvps.forEach((rsvp) => {
     if (rsvp.status === 'Y') gCount += 1;
   });
-  const recentRsvps = await rdsOccasions.getRecentRsvps(parentId);
+  const recentRsvps = await rdsRsvps.getRecentRsvps(parentId);
   const recentRsvpsUsers = await Promise.all(
     recentRsvps.map((rsvp) => rdsUsers.getUserFields(rsvp.userId, MINI_PROFILE_FIELDS)),
   );
