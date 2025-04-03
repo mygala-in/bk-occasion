@@ -11,6 +11,8 @@ const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const helper = require('./helper');
+const redis = require('./bk-utils/redis.helper');
+const rsvps = require('./rsvpsHandler');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -303,6 +305,50 @@ async function getOccasionUsers(request) {
   return wUsers;
 }
 
+async function getOccasionByCode(request) {
+  const { pathParameters, queryStringParameters } = request;
+  const { occasionId } = pathParameters;
+  let include = [];
+  if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include.split(',');
+
+  logger.info('get occasion request for ', { occasionId, include });
+  const occasion = await rdsOccasions.getOccasionByCode(occasionId);
+  logger.info('occasion ', JSON.stringify(occasion));
+  if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+  const gbIds = []; // groom & bride Ids
+  if (_.has(occasion.extras, 'brideId')) {
+    if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+  }
+  if (_.has(occasion.extras, 'groomId')) {
+    if (!gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+    logger.info('groom & bride ids ', JSON.stringify(gbIds));
+  }
+
+  const [ouObj, uObj, ouCounts, extras, gbUsers] = await Promise.all([
+    rdsOUsers.getUser(occasion.id, occasion.creatorId),
+    rdsUsers.getUserFields(occasion.creatorId, constants.MINI_PROFILE_FIELDS),
+    rdsOUsers.getOUsersCounts(occasion.id),
+    helper.occasionExtras(occasion.id, include),
+    rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
+  ]);
+
+  occasion.ouser = ouObj;
+  occasion.user = uObj;
+  if (_.has(occasion.extras, 'brideId')) {
+    [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
+  }
+  if (_.has(occasion.extras, 'groomId')) {
+    [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
+  }
+  occasion.rsvpSummary = redis.get(`{occasion}_${occasion.id}_rsvp_summary`, 'json');
+  if (!occasion.rsvpSummary) occasion.rsvpSummary = rsvps.generateRsvp(`occasion_${occasion.id}`);
+  logger.info('ou counts ', JSON.stringify(ouCounts));
+  occasion.counts = ouCounts;
+  logger.info('extras ', JSON.stringify(extras));
+  Object.assign(occasion, { ...extras });
+  return occasion;
+}
+
 
 
 async function invoke(event, context, callback) {
@@ -342,6 +388,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/users':
         resp = await getOccasionUsers(request);
+        break;
+
+      case '/v1/{occasionId}/invite':
+        resp = await getOccasionByCode(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
