@@ -126,14 +126,14 @@ async function createNewOccasion(request) {
     logger.info('occasion code exists check ', { code, isCodeExists });
   }
 
-  // * mObj - occasion object
-  const mObj = { creatorId: decoded.id, code };
-  Object.assign(mObj, _.pick(body, ['title', 'note', 'type', 'fromTime', 'tillTime', 'isPublic', 'extras', 'url', 'locationId']));
-  if (mObj.fromTime) mObj.fromTime = common.convertToDate(mObj.fromTime);
-  if (mObj.tillTime) mObj.tillTime = common.convertToDate(mObj.tillTime);
+  // * oObj - occasion object
+  const oObj = { creatorId: decoded.id, code };
+  Object.assign(oObj, _.pick(body, ['title', 'note', 'type', 'fromTime', 'tillTime', 'isPublic', 'extras', 'url', 'locationId']));
+  if (oObj.fromTime) oObj.fromTime = common.convertToDate(oObj.fromTime);
+  if (oObj.tillTime) oObj.tillTime = common.convertToDate(oObj.tillTime);
 
-  logger.info('new occasion object ', mObj);
-  const { insertId } = await rdsOccasions.newOccasion(mObj);
+  logger.info('new occasion object ', oObj);
+  const { insertId } = await rdsOccasions.newOccasion(oObj);
 
   // * muObj - occasion user object
   const muObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
@@ -146,7 +146,6 @@ async function createNewOccasion(request) {
   await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${insertId}`, type: 'join', status: 'A' } });
   // TODO send an alert to indicate new occasion event was created
   request.pathParameters = { occasionId: insertId };
-
   return getOccasion(request);
 }
 
