@@ -56,7 +56,8 @@ async function getRsvp(request) {
 async function generateRsvp(parentId) {
   const rsvps = await getRsvpList({ pathParameters: { parentId } });
   let gCount = 0;
-  rsvps.forEach((rsvp) => {
+  if (rsvps.count === 0) return null;
+  rsvps.items.forEach((rsvp) => {
     if (rsvp.status === 'Y') gCount += 1;
   });
   const recentRsvps = await rdsRsvps.getRecentRsvps(parentId);
