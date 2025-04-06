@@ -104,7 +104,7 @@ async function deleteOccasion(message) {
 
 
 async function deleteEvent(message) {
-  const { occasionId, eventId, userId } = message;
+  const { occasionId, eventId } = message;
 
   const event = await rdsOEvents.getEvent(eventId);
   if (_.isEmpty(event)) errors.handleError(404, 'event not found');
@@ -115,9 +115,8 @@ async function deleteEvent(message) {
 
   const tasks = [];
   tasks.push(rdsOEvents.deleteEvent(eventId));
-  tasks.push(snsHelper.pushToSNS('asset-bg-tasks', { service: 'asset', component: 'event', action: 'delete', data: { parentIds: [eventId] } }));
+  tasks.push(snsHelper.pushToSNS('asset-bg-tasks', { service: 'asset', component: 'event', action: 'delete', data: { parentIds: [`event_${eventId}`] } }));
   tasks.push(snsHelper.pushToSNS('notification-bg-tasks', { service: 'notification', component: 'event', action: 'delete', data: { occasionId, eventId } }));
-  tasks.push(snsHelper.pushToSNS('email', { service: 'email', component: 'event', action: 'delete', data: { comment: 'event deleted', occasionId, eventId, userId } }));
   await Promise.all(tasks);
 
   logger.info('completed event delete');
