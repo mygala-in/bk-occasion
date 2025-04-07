@@ -10,7 +10,6 @@ const snsHelper = require('./bk-utils/sns.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
-const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
 const helper = require('./helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
@@ -235,6 +234,7 @@ async function joinOccasion(request) {
   if (occasion.isPublic) {
     logger.info('public occasion, joining user');
     await rdsOUsers.newOrUpdateUser({ userId: decoded.id, occasionId, role: OCCASION_CONFIG.ROLES.user.role, status: OCCASION_CONFIG.status.verified, side: side || null, isDeleted: false, verifierId: 0 });
+    await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${occasionId}`, type: 'join', status: 'A' } });
   } else {
     let sideText = 'occasion';
     if (side === 'B') sideText = 'Bride';
@@ -348,16 +348,14 @@ async function actionOnUser(request) {
   if (side === 'B') sideText = 'Bride';
   else if (side === 'G') sideText = 'Groom';
 
-  let postId;
   const updateObj = {};
   switch (action) {
     // * - while approving join request
     case 'verify':
       if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
-      postId = (await rdsPosts.insertPost({ userId, occasionId, type: 'occasion.join', status: 'A' })).insertId;
       await Promise.all([
         rdsOUsers.updateUser(occasionId, userId, { status: OCCASION_CONFIG.status.verified, verifierId: decoded.id }),
-        await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId, parentId: `occasion_${occasionId}`, type: 'join', status: 'A', postId } }),
+        snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId, parentId: `occasion_${occasionId}`, type: 'join', status: 'A' } }),
         snsHelper.pushToSNS('fcm', {
           service: 'notification',
           component: 'notification',
@@ -369,7 +367,7 @@ async function actionOnUser(request) {
             topic: common.getTopicName('user', userId),
             groupId: APP_NOTIFICATIONS.channels.occasion,
             subtitle: `Welcome to ${sideText} squad! 🎉`,
-            payload: { screen: `/occasions/${occasionId}`, params: { useCache: 'false' } },
+            payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
           },
         }),
       ]);
@@ -403,25 +401,55 @@ async function actionOnUser(request) {
       ]);
       return { success: true };
 
+    case 'exit':
+      // exit is not allowed for admins, they can only do full delete of occasion
+      if (ouOnObj.id !== decoded.id || ouObj.role === OCCASION_CONFIG.ROLES.admin.role) errors.handleError(401, 'unauthorised');
+      if (`${occasion.groomId}` === `${userId}`) updateObj.groomId = null;
+      if (`${occasion.brideId}` === `${userId}`) updateObj.brideId = null;
+      logger.info({ updateObj });
+      if (Object.keys(updateObj).length > 0) await rdsOccasions.updateOccasion(occasionId, updateObj);
+      await Promise.all([
+        rdsOUsers.removeUser(occasionId, userId),
+        snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'occasion', action: 'exit', data: { userId, occasionId } }),
+        snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'delete', data: { chatId: `GC_${occasion.code}`, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } }),
+        snsHelper.pushToSNS('fcm', {
+          service: 'notification',
+          component: 'notification',
+          action: 'new',
+          data: {
+            id: occasionId,
+            type: 'default',
+            title: 'Occasion update',
+            subtitle: 'Occasion update',
+            topic: common.getTopicName('user', userId),
+            groupId: APP_NOTIFICATIONS.channels.occasion,
+            payload: { hidden: true, tasks: ['/occasion/delete'], params: { occasionId } },
+          },
+        }),
+      ]);
+      return { success: true };
+
     // * - while making admin back as user or while approving rejected user
     case 'user':
       if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
-      await rdsOUsers.updateUser(occasionId, userId, { status: OCCASION_CONFIG.status.verified, role: OCCASION_CONFIG.ROLES.user.role, verifierId: decoded.id });
-      await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'edit', data: { chatId: `GC_${occasion.code}`, isAdmin: false, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } });
-      await snsHelper.pushToSNS('fcm', {
-        service: 'notification',
-        component: 'notification',
-        action: 'new',
-        data: {
-          id: occasionId,
-          type: 'default',
-          title: 'Role updated',
-          topic: common.getTopicName('user', userId),
-          groupId: APP_NOTIFICATIONS.channels.occasion,
-          subtitle: `@${decoded.username} has updated your role, tap to view!`,
-          payload: { screen: `/occasions/${occasionId}`, params: { useCache: 'false' } },
-        },
-      });
+      await Promise.all([
+        rdsOUsers.updateUser(occasionId, userId, { status: OCCASION_CONFIG.status.verified, role: OCCASION_CONFIG.ROLES.user.role, verifierId: decoded.id }),
+        snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'edit', data: { chatId: `GC_${occasion.code}`, isAdmin: false, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } }),
+        snsHelper.pushToSNS('fcm', {
+          service: 'notification',
+          component: 'notification',
+          action: 'new',
+          data: {
+            id: occasionId,
+            type: 'default',
+            title: 'Role updated',
+            topic: common.getTopicName('user', userId),
+            groupId: APP_NOTIFICATIONS.channels.occasion,
+            subtitle: `@${decoded.username} has updated your role, tap to view!`,
+            payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+          },
+        }),
+      ]);
       return getOccasionUser(request);
 
     // * - while making watcher/user as admin
