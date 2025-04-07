@@ -269,6 +269,20 @@ async function joinOccasion(request) {
   return getOccasion(request);
 }
 
+async function rsvpOccasion(request) {
+  const { decoded } = request;
+  const { occasionId } = request.pathParameters;
+  const { rsvp } = request.body;
+  logger.info('rsvp occasion request for ', occasionId);
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+
+  await rdsOUsers.updateUser(occasionId, decoded.id, { rsvp });
+  return getOccasion(request);
+}
+
 async function getOccasionAssets(request) {
   const { decoded } = request;
   const { occasionId } = request.pathParameters;
@@ -335,6 +349,11 @@ async function invoke(event, context, callback) {
       case '/v1/{occasionId}/join':
         resp = await joinOccasion(request);
         break;
+
+      case '/v1/{occasionId}/rsvp':
+        resp = await rsvpOccasion(request);
+        break;
+
 
       case '/v1/{occasionId}/assets':
         resp = await getOccasionAssets(request);
