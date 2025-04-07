@@ -316,7 +316,7 @@ async function getOccasionUser(request) {
   const { occasionId, userId } = request.pathParameters;
   logger.info('get occasion user request for ', { occasionId, userId });
   const [oUsers, user] = await Promise.all([rdsOUsers.getUsersIn(occasionId, [decoded.id, userId]), rdsUsers.getUserFields(userId, constants.MINI_PROFILE_FIELDS)]);
-  if (oUsers.count !== 2) errors.handleError(404, 'user not found');
+  // if (oUsers.count !== 2) errors.handleError(404, 'user not found');
   const ouObj = oUsers.items.filter((u) => `${u.userId}` === `${decoded.id}`)[0];
   const ouOnObj = oUsers.items.filter((u) => `${u.userId}` === `${userId}`)[0];
   logger.info('requested user ', ouObj);
