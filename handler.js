@@ -274,7 +274,7 @@ async function rsvpOccasion(request) {
   if (ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
 
   await rdsOUsers.updateUser(occasionId, decoded.id, { rsvp });
-  return { success: true };
+  return getOccasion(request);
 }
 
 async function getOccasionAssets(request) {
