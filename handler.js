@@ -316,9 +316,9 @@ async function getOccasionUser(request) {
   const { occasionId, userId } = request.pathParameters;
   logger.info('get occasion user request for ', { occasionId, userId });
   const [oUsers, user] = await Promise.all([rdsOUsers.getUsersIn(occasionId, [decoded.id, userId]), rdsUsers.getUserFields(userId, constants.MINI_PROFILE_FIELDS)]);
-  // if (oUsers.count !== 2) errors.handleError(404, 'user not found');
-  const ouObj = oUsers.items.filter((u) => `${u.userId}` === `${decoded.id}`)[0];
-  const ouOnObj = oUsers.items.filter((u) => `${u.userId}` === `${userId}`)[0];
+  const ouObj = _.find(oUsers.items, (u) => `${u.userId}` === `${decoded.id}`);
+  const ouOnObj = _.find(oUsers.items, (u) => `${u.userId}` === `${userId}`);
+  if (_.isEmpty(ouOnObj)) errors.handleError(404, 'user not found');
   logger.info('requested user ', ouObj);
 
   if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
@@ -336,11 +336,9 @@ async function actionOnUser(request) {
   const [oUsers, occasion, user] = await Promise.all([rdsOUsers.getUsersIn(occasionId, [decoded.id, userId]), rdsOccasions.getOccasion(occasionId), rdsUsers.getUserFields(userId, constants.MINI_PROFILE_FIELDS)]);
   logger.info(oUsers);
   if (_.isEmpty(oUsers)) errors.handleError(500, 'something went wrong');
-  if (oUsers.count !== 2) errors.handleError(404, 'user not found');
-  if (_.isEmpty(oUsers)) errors.handleError(500, 'something went wrong');
-  if (oUsers.count !== 2) errors.handleError(404, 'user not found');
-  const ouObj = oUsers.items.filter((u) => `${u.userId}` === `${decoded.id}`)[0];
-  const ouOnObj = oUsers.items.filter((u) => `${u.userId}` === `${userId}`)[0];
+  const ouObj = _.find(oUsers.items, (u) => `${u.userId}` === `${decoded.id}`);
+  const ouOnObj = _.find(oUsers.items, (u) => `${u.userId}` === `${userId}`);
+  if (!ouObj || !ouOnObj) errors.handleError(404, 'user not found');
   logger.info('requested by user ', ouObj);
   logger.info('requested on user ', ouOnObj);
   if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
@@ -403,7 +401,7 @@ async function actionOnUser(request) {
 
     case 'exit':
       // exit is not allowed for admins, they can only do full delete of occasion
-      if (ouOnObj.id !== decoded.id || ouObj.role === OCCASION_CONFIG.ROLES.admin.role) errors.handleError(401, 'unauthorised');
+      if (ouOnObj.userId !== decoded.id || ouObj.role === OCCASION_CONFIG.ROLES.admin.role) errors.handleError(401, 'unauthorised');
       if (`${occasion.groomId}` === `${userId}`) updateObj.groomId = null;
       if (`${occasion.brideId}` === `${userId}`) updateObj.brideId = null;
       logger.info({ updateObj });
