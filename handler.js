@@ -401,7 +401,7 @@ async function actionOnUser(request) {
 
     case 'exit':
       // exit is not allowed for admins, they can only do full delete of occasion
-      if (ouOnObj.id !== decoded.id || ouObj.role === OCCASION_CONFIG.ROLES.admin.role) errors.handleError(401, 'unauthorised');
+      if (ouOnObj.userId !== decoded.id || ouObj.role === OCCASION_CONFIG.ROLES.admin.role) errors.handleError(401, 'unauthorised');
       if (`${occasion.groomId}` === `${userId}`) updateObj.groomId = null;
       if (`${occasion.brideId}` === `${userId}`) updateObj.brideId = null;
       logger.info({ updateObj });
