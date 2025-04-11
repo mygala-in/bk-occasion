@@ -1,16 +1,17 @@
 const _ = require('underscore');
+const helper = require('./helper');
 const logger = require('./bk-utils/logger');
 const access = require('./bk-utils/access');
 const errors = require('./bk-utils/errors');
-const constants = require('./bk-utils/constants');
 const common = require('./bk-utils/common');
-const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
-const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
+const constants = require('./bk-utils/constants');
 const snsHelper = require('./bk-utils/sns.helper');
+const redisHelper = require('./bk-utils/redis.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
+const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
+const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
-const helper = require('./helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -140,6 +141,7 @@ async function createNewOccasion(request) {
   if (body.side) ouObj.side = body.side;
   await Promise.all([
     rdsOUsers.newUser(ouObj),
+    redisHelper.set('{occasion}_recent', `${insertId}`),
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
   ]);
 
