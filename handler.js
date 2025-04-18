@@ -1,18 +1,18 @@
 const _ = require('underscore');
+const helper = require('./helper');
 const logger = require('./bk-utils/logger');
 const access = require('./bk-utils/access');
 const errors = require('./bk-utils/errors');
-const constants = require('./bk-utils/constants');
 const common = require('./bk-utils/common');
-const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
-const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
+const constants = require('./bk-utils/constants');
 const snsHelper = require('./bk-utils/sns.helper');
+const redisHelper = require('./bk-utils/redis.helper');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
+const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
+const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
-const helper = require('./helper');
 const redis = require('./bk-utils/redis.helper');
-const rsvps = require('./rsvpsHandler');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -37,9 +37,9 @@ async function getOccasion(request) {
   }
 
   if (decoded) {
-    const muObj = await rdsOUsers.getUser(occasion.id, decoded.id);
-    logger.info('requested user ', muObj);
-    occasion.ouser = muObj;
+    const ouObj = await rdsOUsers.getUser(occasion.id, decoded.id);
+    logger.info('requested user ', ouObj);
+    occasion.ouser = ouObj;
   }
   const [ouCounts, extras, gbUsers] = await Promise.all([
     rdsOUsers.getOUsersCounts(occasion.id),
@@ -137,11 +137,12 @@ async function createNewOccasion(request) {
   logger.info('new occasion object ', oObj);
   const { insertId } = await rdsOccasions.newOccasion(oObj);
 
-  // * muObj - occasion user object
-  const muObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
-  if (body.side) muObj.side = body.side;
+  // * ouObj - occasion user object
+  const ouObj = { userId: decoded.id, occasionId: insertId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
+  if (body.side) ouObj.side = body.side;
   await Promise.all([
-    rdsOUsers.newUser(muObj),
+    rdsOUsers.newUser(ouObj),
+    redisHelper.set('{occasion}_recent', `${insertId}`),
     snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'chat', action: 'new', data: { userId: decoded.id, username: decoded.username, name: body.title, chatId: `GC_${code}`, users: [decoded.id], type: 'occasion', isGroup: true } }),
   ]);
 
@@ -155,10 +156,10 @@ async function updateOccasion(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId } = pathParameters;
   logger.info('occasion update request');
-  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
-  logger.info('requested user ', muObj);
-  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
-  if (muObj.role < OCCASION_CONFIG.ROLES.admin.role || muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
   const user = await rdsUsers.getUserFields(decoded.id, ['name', 'username']);
 
   const tasks = [];
@@ -178,7 +179,7 @@ async function updateOccasion(request) {
     const bMuObj = { userId: body.extras.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
     tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
   }
-  if (body.side && muObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
+  if (body.side && ouObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
   if (body.side) delete body.side;
   if (body.fromTime) body.fromTime = common.convertToDate(body.fromTime);
   if (body.tillTime) body.tillTime = common.convertToDate(body.tillTime);
@@ -208,10 +209,10 @@ async function deleteOccasion(request) {
   const { occasionId } = pathParameters;
 
   logger.info('occasion update request');
-  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
-  logger.info('requested user ', muObj);
-  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
-  if (muObj.role < OCCASION_CONFIG.ROLES.admin.role || muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
 
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (occasion.code !== body.code) errors.handleError(400, 'invalid occasion code');
@@ -226,27 +227,21 @@ async function joinOccasion(request) {
   if (side) logger.info('side parameter is provided');
 
   logger.info('join occasion request for ', occasionId);
-  const [occasion, muObj] = await Promise.all([rdsOccasions.getOccasion(occasionId), rdsOUsers.getUser(occasionId, decoded.id)]);
-  logger.info('requested user ', muObj);
-  if (!_.isEmpty(muObj)) {
-    if (muObj.status === OCCASION_CONFIG.status.verified) errors.handleError(409, 'already joined');
+  const [occasion, ouObj] = await Promise.all([rdsOccasions.getOccasion(occasionId), rdsOUsers.getUser(occasionId, decoded.id)]);
+  logger.info('requested user ', ouObj);
+  if (!_.isEmpty(ouObj)) {
+    if (ouObj.status === OCCASION_CONFIG.status.verified) errors.handleError(409, 'already joined');
   }
   const user = await rdsUsers.getUserFields(decoded.id, ['name', 'username']);
   logger.info('joining user to occasion and sending fcm push');
   if (occasion.isPublic) {
     logger.info('public occasion, joining user');
-    // added side: side || null
     await rdsOUsers.newOrUpdateUser({ userId: decoded.id, occasionId, role: OCCASION_CONFIG.ROLES.user.role, status: OCCASION_CONFIG.status.verified, side: side || null, isDeleted: false, verifierId: 0 });
+    await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${occasionId}`, type: 'join', status: 'A' } });
   } else {
-    let sideText;
-    if (side === 'B') {
-      sideText = 'Bride';
-    } else if (side === 'G') {
-      sideText = 'Groom';
-    } else {
-      sideText = 'event';
-    }
-
+    let sideText = 'occasion';
+    if (side === 'B') sideText = 'Bride';
+    else if (side === 'G') sideText = 'Groom';
     logger.info('private occasion, sending join request');
 
     await Promise.all([
@@ -271,15 +266,29 @@ async function joinOccasion(request) {
   return getOccasion(request);
 }
 
+async function rsvpOccasion(request) {
+  const { decoded } = request;
+  const { occasionId } = request.pathParameters;
+  const { rsvp } = request.body;
+  logger.info('rsvp occasion request for ', occasionId);
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+
+  await rdsOUsers.updateUser(occasionId, decoded.id, { rsvp });
+  return getOccasion(request);
+}
+
 async function getOccasionAssets(request) {
   const { decoded } = request;
   const { occasionId } = request.pathParameters;
 
   logger.info('get occasion images request for ', occasionId);
-  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
-  logger.info('requested user ', muObj);
-  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
-  if (muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
   return rdsAssets.getParentAssets(`occasion_${occasionId}`);
 }
 
@@ -288,21 +297,21 @@ async function getOccasionUsers(request) {
   const { occasionId } = request.pathParameters;
 
   logger.info('get occasion users request for ', occasionId);
-  const muObj = await rdsOUsers.getUser(occasionId, decoded.id);
-  logger.info('requested user ', muObj);
-  if (_.isEmpty(muObj)) errors.handleError(404, 'no association with requested occasion');
-  if (muObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
 
-  let wUsers;
-  if (muObj.role < OCCASION_CONFIG.ROLES.admin.role) wUsers = await rdsOUsers.getVerifiedUsers(occasionId);
-  else wUsers = await rdsOUsers.getUsers(occasionId);
+  let oUsers;
+  if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role) oUsers = await rdsOUsers.getVerifiedUsers(occasionId);
+  else oUsers = await rdsOUsers.getUsers(occasionId);
 
-  const userIds = wUsers.items.map((user) => user.userId);
+  const userIds = oUsers.items.map((user) => user.userId);
   const miniProfiles = await rdsUsers.getUserFieldsIn(_.unique(userIds), constants.MINI_PROFILE_FIELDS);
-  for (let i = 0; i < wUsers.count; i += 1) {
-    [wUsers.items[i].user] = miniProfiles.items.filter((user) => user.id === wUsers.items[i].userId);
+  for (let i = 0; i < oUsers.count; i += 1) {
+    [oUsers.items[i].user] = miniProfiles.items.filter((user) => user.id === oUsers.items[i].userId);
   }
-  return wUsers;
+  return oUsers;
 }
 
 async function getOccasionByCode(request) {
@@ -341,7 +350,6 @@ async function getOccasionByCode(request) {
     [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
   }
   occasion.rsvpSummary = redis.get(`{occasion}_${occasion.id}_rsvp_summary`, 'json');
-  if (!occasion.rsvpSummary) occasion.rsvpSummary = rsvps.generateRsvp(`occasion_${occasion.id}`);
   logger.info('ou counts ', JSON.stringify(ouCounts));
   occasion.counts = ouCounts;
   logger.info('extras ', JSON.stringify(extras));
@@ -349,7 +357,190 @@ async function getOccasionByCode(request) {
   return occasion;
 }
 
+async function getOccasionUser(request) {
+  const { decoded } = request;
+  const { occasionId, userId } = request.pathParameters;
+  logger.info('get occasion user request for ', { occasionId, userId });
+  const [oUsers, user] = await Promise.all([rdsOUsers.getUsersIn(occasionId, [decoded.id, userId]), rdsUsers.getUserFields(userId, constants.MINI_PROFILE_FIELDS)]);
+  const ouObj = _.find(oUsers.items, (u) => `${u.userId}` === `${decoded.id}`);
+  const ouOnObj = _.find(oUsers.items, (u) => `${u.userId}` === `${userId}`);
+  if (_.isEmpty(ouOnObj)) errors.handleError(404, 'user not found');
+  logger.info('requested user ', ouObj);
 
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+  ouOnObj.user = user;
+  return ouOnObj;
+}
+
+async function actionOnUser(request) {
+  const { decoded } = request;
+  const { occasionId, userId } = request.pathParameters;
+  const { action, side } = request.queryStringParameters;
+  logger.info(`performing ${action} action on occasion ${occasionId} and user ${userId}`);
+
+  const [oUsers, occasion, user] = await Promise.all([rdsOUsers.getUsersIn(occasionId, [decoded.id, userId]), rdsOccasions.getOccasion(occasionId), rdsUsers.getUserFields(userId, constants.MINI_PROFILE_FIELDS)]);
+  logger.info(oUsers);
+  if (_.isEmpty(oUsers)) errors.handleError(500, 'something went wrong');
+  const ouObj = _.find(oUsers.items, (u) => `${u.userId}` === `${decoded.id}`);
+  const ouOnObj = _.find(oUsers.items, (u) => `${u.userId}` === `${userId}`);
+  if (!ouObj || !ouOnObj) errors.handleError(404, 'user not found');
+  logger.info('requested by user ', ouObj);
+  logger.info('requested on user ', ouOnObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  let sideText = 'occasion';
+  if (side === 'B') sideText = 'Bride';
+  else if (side === 'G') sideText = 'Groom';
+
+  const updateObj = {};
+  switch (action) {
+    // * - while approving join request
+    case 'verify':
+      if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+      await Promise.all([
+        rdsOUsers.updateUser(occasionId, userId, { status: OCCASION_CONFIG.status.verified, verifierId: decoded.id }),
+        snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId, parentId: `occasion_${occasionId}`, type: 'join', status: 'A' } }),
+        snsHelper.pushToSNS('fcm', {
+          service: 'notification',
+          component: 'notification',
+          action: 'new',
+          data: {
+            id: occasionId,
+            type: 'default',
+            title: 'Join Request Approved!!',
+            topic: common.getTopicName('user', userId),
+            groupId: APP_NOTIFICATIONS.channels.occasion,
+            subtitle: `Welcome to ${sideText} squad! 🎉`,
+            payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+          },
+        }),
+      ]);
+      return getOccasionUser(request);
+
+    // * - while removing verified user
+    case 'remove':
+      if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+      if (`${occasion.groomId}` === `${userId}`) updateObj.groomId = null;
+      if (`${occasion.brideId}` === `${userId}`) updateObj.brideId = null;
+      logger.info({ updateObj });
+      if (Object.keys(updateObj).length > 0) await rdsOccasions.updateOccasion(occasionId, updateObj);
+      await Promise.all([
+        rdsOUsers.removeUser(occasionId, userId),
+        snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'occasion', action: 'exit', data: { userId, occasionId } }),
+        snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'delete', data: { chatId: `GC_${occasion.code}`, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } }),
+        snsHelper.pushToSNS('fcm', {
+          service: 'notification',
+          component: 'notification',
+          action: 'new',
+          data: {
+            id: occasionId,
+            type: 'default',
+            title: 'Occasion update',
+            subtitle: 'Occasion update',
+            topic: common.getTopicName('user', userId),
+            groupId: APP_NOTIFICATIONS.channels.occasion,
+            payload: { hidden: true, tasks: ['/occasion/delete'], params: { occasionId } },
+          },
+        }),
+      ]);
+      return { success: true };
+
+    case 'exit':
+      // exit is not allowed for admins, they can only do full delete of occasion
+      if (ouOnObj.userId !== decoded.id || ouObj.role === OCCASION_CONFIG.ROLES.admin.role) errors.handleError(401, 'unauthorised');
+      if (`${occasion.groomId}` === `${userId}`) updateObj.groomId = null;
+      if (`${occasion.brideId}` === `${userId}`) updateObj.brideId = null;
+      logger.info({ updateObj });
+      if (Object.keys(updateObj).length > 0) await rdsOccasions.updateOccasion(occasionId, updateObj);
+      await Promise.all([
+        rdsOUsers.removeUser(occasionId, userId),
+        snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'occasion', action: 'exit', data: { userId, occasionId } }),
+        snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'delete', data: { chatId: `GC_${occasion.code}`, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } }),
+        snsHelper.pushToSNS('fcm', {
+          service: 'notification',
+          component: 'notification',
+          action: 'new',
+          data: {
+            id: occasionId,
+            type: 'default',
+            title: 'Occasion update',
+            subtitle: 'Occasion update',
+            topic: common.getTopicName('user', userId),
+            groupId: APP_NOTIFICATIONS.channels.occasion,
+            payload: { hidden: true, tasks: ['/occasion/delete'], params: { occasionId } },
+          },
+        }),
+      ]);
+      return { success: true };
+
+    // * - while making admin back as user or while approving rejected user
+    case 'user':
+      if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+      await Promise.all([
+        rdsOUsers.updateUser(occasionId, userId, { status: OCCASION_CONFIG.status.verified, role: OCCASION_CONFIG.ROLES.user.role, verifierId: decoded.id }),
+        snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'edit', data: { chatId: `GC_${occasion.code}`, isAdmin: false, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } }),
+        snsHelper.pushToSNS('fcm', {
+          service: 'notification',
+          component: 'notification',
+          action: 'new',
+          data: {
+            id: occasionId,
+            type: 'default',
+            title: 'Role updated',
+            topic: common.getTopicName('user', userId),
+            groupId: APP_NOTIFICATIONS.channels.occasion,
+            subtitle: `@${decoded.username} has updated your role, tap to view!`,
+            payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+          },
+        }),
+      ]);
+      return getOccasionUser(request);
+
+    // * - while making watcher/user as admin
+    case 'admin':
+      if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+      await rdsOUsers.updateUser(occasionId, userId, { role: OCCASION_CONFIG.ROLES.admin.role, verifierId: decoded.id });
+      await snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'edit', data: { chatId: `GC_${occasion.code}`, isAdmin: true, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } });
+      await snsHelper.pushToSNS('fcm', {
+        service: 'notification',
+        component: 'notification',
+        action: 'new',
+        data: {
+          id: occasionId,
+          type: 'default',
+          title: 'You are now an Admin',
+          topic: common.getTopicName('user', userId),
+          groupId: APP_NOTIFICATIONS.channels.occasion,
+          subtitle: `@${decoded.username} has made you occasion Admin. Tap to view!`,
+          payload: { screen: `/occasions/${occasionId}`, params: { useCache: 'false' } },
+        },
+      });
+      return getOccasionUser(request);
+
+
+    // * - while user changing his side
+    case 'side':
+      if (ouObj.role < OCCASION_CONFIG.ROLES.user.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+      await rdsOUsers.updateUser(occasionId, userId, { status: ouObj.role < OCCASION_CONFIG.ROLES.admin.role ? OCCASION_CONFIG.status.pending : OCCASION_CONFIG.status.verified, side });
+      await snsHelper.pushToSNS('fcm', {
+        service: 'notification',
+        component: 'notification',
+        action: 'new',
+        data: {
+          id: occasionId,
+          type: 'default',
+          title: 'Change squad request',
+          topic: common.getTopicName('occasion.admin', occasionId),
+          groupId: APP_NOTIFICATIONS.channels.occasion,
+          subtitle: `@${user.username || user.name} is requesting to join the ${sideText} Squad! 😍`,
+          payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+        },
+      });
+      return getOccasionUser(request);
+
+    default: return errors.handleError(400, 'invalid action');
+  }
+}
 
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
@@ -382,6 +573,11 @@ async function invoke(event, context, callback) {
         resp = await joinOccasion(request);
         break;
 
+      case '/v1/{occasionId}/rsvp':
+        resp = await rsvpOccasion(request);
+        break;
+
+
       case '/v1/{occasionId}/assets':
         resp = await getOccasionAssets(request);
         break;
@@ -392,6 +588,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/invite':
         resp = await getOccasionByCode(request);
+        break;
+
+      case '/v1/{occasionId}/user/{userId}':
+        resp = await actionOnUser(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');

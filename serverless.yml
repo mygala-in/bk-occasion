@@ -82,6 +82,10 @@ functions:
           method: put
           cors: ${self:custom.customCors}
       - http:
+          path: /v1/{occasionId}/rsvp
+          method: put
+          cors: ${self:custom.customCors}
+      - http:
           path: /v1/{occasionId}/users
           method: get
           cors: ${self:custom.customCors}
@@ -92,6 +96,8 @@ functions:
       - http:
           path: /v1/{occasionId}/invite
           method: get
+          path: /v1/{occasionId}/user/{userId}
+          method: put
           cors: ${self:custom.customCors}
   event:
     name: ${self:custom.config.envPrefix}-occasion-event-apis
