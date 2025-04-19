@@ -12,7 +12,6 @@ const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
-const redis = require('./bk-utils/redis.helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -324,34 +323,21 @@ async function getOccasionByCode(request) {
   const occasion = await rdsOccasions.getOccasionByCode(occasionId);
   logger.info('occasion ', JSON.stringify(occasion));
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
-  const gbIds = []; // groom & bride Ids
-  if (_.has(occasion.extras, 'brideId')) {
-    if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
-  }
-  if (_.has(occasion.extras, 'groomId')) {
-    if (!gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
-    logger.info('groom & bride ids ', JSON.stringify(gbIds));
-  }
 
-  const [ouObj, uObj, ouCounts, extras, gbUsers] = await Promise.all([
-    rdsOUsers.getUser(occasion.id, occasion.creatorId),
+  const [uObj, extras] = await Promise.all([
     rdsUsers.getUserFields(occasion.creatorId, constants.MINI_PROFILE_FIELDS),
-    rdsOUsers.getOUsersCounts(occasion.id),
     helper.occasionExtras(occasion.id, include),
-    rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
   ]);
+  occasion.host = uObj;
 
-  occasion.ouser = ouObj;
-  occasion.user = uObj;
-  if (_.has(occasion.extras, 'brideId')) {
-    [occasion.extras.bride] = gbUsers.items.filter((item) => item.id === occasion.extras.brideId);
+  const ouser = await rdsOUsers.getUsers(occasion.id);
+  const users = _.filter(ouser.items, (user) => user.rsvp === 'Y');
+  if (!_.isEmpty(users)) {
+    const oUser = _.first(users, 5);
+    const rsvpUsers = await Promise.all(oUser.map((user) => rdsUsers.getUserFields(user.userId, constants.MINI_PROFILE_FIELDS)));
+    occasion.rsvpSummary = { entity: 'rsvp', count: users.length, users: rsvpUsers };
   }
-  if (_.has(occasion.extras, 'groomId')) {
-    [occasion.extras.groom] = gbUsers.items.filter((item) => item.id === occasion.extras.groomId);
-  }
-  occasion.rsvpSummary = redis.get(`{occasion}_${occasion.id}_rsvp_summary`, 'json');
-  logger.info('ou counts ', JSON.stringify(ouCounts));
-  occasion.counts = ouCounts;
+
   logger.info('extras ', JSON.stringify(extras));
   Object.assign(occasion, { ...extras });
   return occasion;
