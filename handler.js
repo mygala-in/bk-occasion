@@ -313,6 +313,36 @@ async function getOccasionUsers(request) {
   return oUsers;
 }
 
+async function getOccasionByCode(request) {
+  const { pathParameters, queryStringParameters } = request;
+  const { occasionId } = pathParameters;
+  let include = [];
+  if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include.split(',');
+
+  logger.info('get occasion request for ', { occasionId, include });
+  const occasion = await rdsOccasions.getOccasionByCode(occasionId);
+  logger.info('occasion ', JSON.stringify(occasion));
+  if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+
+  const [uObj, extras] = await Promise.all([
+    rdsUsers.getUserFields(occasion.creatorId, constants.MINI_PROFILE_FIELDS),
+    helper.occasionExtras(occasion.id, include),
+  ]);
+  occasion.host = uObj;
+
+  const ouser = await rdsOUsers.getUsers(occasion.id);
+  const users = _.filter(ouser.items, (user) => user.rsvp === 'Y');
+  if (!_.isEmpty(users)) {
+    const oUser = _.first(users, 5);
+    const rsvpUsers = await Promise.all(oUser.map((user) => rdsUsers.getUserFields(user.userId, constants.MINI_PROFILE_FIELDS)));
+    occasion.rsvpSummary = { entity: 'rsvp', count: users.length, users: rsvpUsers };
+  }
+
+  logger.info('extras ', JSON.stringify(extras));
+  Object.assign(occasion, { ...extras });
+  return occasion;
+}
+
 async function getOccasionUser(request) {
   const { decoded } = request;
   const { occasionId, userId } = request.pathParameters;
@@ -540,6 +570,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/users':
         resp = await getOccasionUsers(request);
+        break;
+
+      case '/v1/{occasionId}/invite':
+        resp = await getOccasionByCode(request);
         break;
 
       case '/v1/{occasionId}/user/{userId}':
