@@ -29,7 +29,7 @@ async function occasionExtras(occasionId, include) {
           resp.events.items.map((event) => {
             event.assets = { entity: 'collection', items: [], count: 0 };
             event.assets.items = assets.items.filter(
-              (asset) => asset.eventId === event.id,
+              (asset) => asset.parentId === `event_${event.id}`,
             );
             event.assets.count = event.assets.items.length;
             return event;

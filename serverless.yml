@@ -94,6 +94,10 @@ functions:
           method: get
           cors: ${self:custom.customCors}
       - http:
+          path: /v1/{occasionId}/invite
+          method: get
+          cors: ${self:custom.customCors}
+      - http:
           path: /v1/{occasionId}/user/{userId}
           method: put
           cors: ${self:custom.customCors}
