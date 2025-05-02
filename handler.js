@@ -178,6 +178,7 @@ async function updateOccasion(request) {
     const bMuObj = { userId: body.extras.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
     tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
   }
+  if (body.vendors) body.vendors = JSON.stringify(body.vendors);
   if (body.side && ouObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
   if (body.side) delete body.side;
   if (body.fromTime) body.fromTime = common.convertToDate(body.fromTime);
@@ -562,7 +563,6 @@ async function invoke(event, context, callback) {
       case '/v1/{occasionId}/rsvp':
         resp = await rsvpOccasion(request);
         break;
-
 
       case '/v1/{occasionId}/assets':
         resp = await getOccasionAssets(request);
