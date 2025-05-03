@@ -12,6 +12,7 @@ const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+const rdsVendors = require('./bk-utils/rds/rds.vendor.helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -529,6 +530,24 @@ async function actionOnUser(request) {
   }
 }
 
+async function getOccasionVendors(request) {
+  const { occasionId } = request.pathParameters;
+  const resp = { entity: 'collection', items: [], count: 0 };
+  const { vendors } = await rdsOccasions.getOccasion(occasionId);
+  if (_.isEmpty(vendors)) return resp;
+  logger.info('occasion vendors', vendors);
+
+  const oVendors = await rdsVendors.getVendorsIn(vendors);
+  const uIds = oVendors.items.map((v) => v.creatorId);
+  const ovUsers = await rdsUsers.getUserFieldsIn(uIds, constants.MINI_PROFILE_FIELDS);
+  resp.items = oVendors.items.map((v) => ({
+    ...common.purgePrivates(constants.VENDOR_CONFIG.PRIVATE_FIELDS, v),
+    user: ovUsers.items.filter((u) => u.id === v.creatorId),
+  }));
+  resp.count = oVendors.count;
+  return resp;
+}
+
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
   try {
@@ -578,6 +597,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/user/{userId}':
         resp = await actionOnUser(request);
+        break;
+
+      case '/v1/{occasionId}/vendors/list':
+        resp = await getOccasionVendors(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
