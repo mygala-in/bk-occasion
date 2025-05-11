@@ -539,10 +539,10 @@ async function getOccasionVendors(request) {
 
   const oVendors = await rdsVendors.getVendorsIn(vendors);
   const uIds = oVendors.items.map((v) => v.creatorId);
-  const ovUsers = await rdsUsers.getUserFieldsIn(uIds, constants.MINI_PROFILE_FIELDS);
+  const vUsers = await rdsUsers.getUserFieldsIn(uIds, constants.MINI_PROFILE_FIELDS);
   resp.items = oVendors.items.map((v) => ({
     ...common.purgePrivates(constants.VENDOR_CONFIG.PRIVATE_FIELDS, v),
-    user: ovUsers.items.find((u) => u.id === v.creatorId),
+    user: vUsers.items.find((u) => u.id === v.creatorId),
   }));
   resp.count = oVendors.count;
   return resp;
