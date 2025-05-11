@@ -12,6 +12,7 @@ const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+const rdsVendors = require('./bk-utils/rds/rds.vendor.helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -178,6 +179,7 @@ async function updateOccasion(request) {
     const bMuObj = { userId: body.extras.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
     tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
   }
+  if (body.vendors) body.vendors = JSON.stringify(body.vendors);
   if (body.side && ouObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
   if (body.side) delete body.side;
   if (body.fromTime) body.fromTime = common.convertToDate(body.fromTime);
@@ -528,6 +530,24 @@ async function actionOnUser(request) {
   }
 }
 
+async function getOccasionVendors(request) {
+  const { occasionId } = request.pathParameters;
+  const resp = { entity: 'collection', items: [], count: 0 };
+  const { vendors } = await rdsOccasions.getOccasion(occasionId);
+  if (_.isEmpty(vendors)) return resp;
+  logger.info('occasion vendors', vendors);
+
+  const oVendors = await rdsVendors.getVendorsIn(vendors);
+  const uIds = oVendors.items.map((v) => v.creatorId);
+  const vUsers = await rdsUsers.getUserFieldsIn(uIds, constants.MINI_PROFILE_FIELDS);
+  resp.items = oVendors.items.map((v) => ({
+    ...common.purgePrivates(constants.VENDOR_CONFIG.PRIVATE_FIELDS, v),
+    user: vUsers.items.find((u) => u.id === v.creatorId),
+  }));
+  resp.count = oVendors.count;
+  return resp;
+}
+
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
   try {
@@ -563,7 +583,6 @@ async function invoke(event, context, callback) {
         resp = await rsvpOccasion(request);
         break;
 
-
       case '/v1/{occasionId}/assets':
         resp = await getOccasionAssets(request);
         break;
@@ -578,6 +597,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/user/{userId}':
         resp = await actionOnUser(request);
+        break;
+
+      case '/v1/{occasionId}/vendors/list':
+        resp = await getOccasionVendors(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');

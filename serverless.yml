@@ -101,6 +101,10 @@ functions:
           path: /v1/{occasionId}/user/{userId}
           method: put
           cors: ${self:custom.customCors}
+      - http:
+          path: /v1/{occasionId}/vendors/list
+          method: get
+          cors: ${self:custom.customCors}
   event:
     name: ${self:custom.config.envPrefix}-occasion-event-apis
     handler: eventsHandler.invoke
