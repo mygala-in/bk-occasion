@@ -198,7 +198,7 @@ async function updateOccasion(request) {
       topic: common.getTopicName('occasion.admin', occasionId),
       groupId: APP_NOTIFICATIONS.channels.occasion,
       subtitle: `@${user.username || user.name} has updated the occasion details🥳`,
-      payload: { screen: `/occasions/${occasionId}`, params: { useCache: 'false' } },
+      payload: { screen: `/app/occasions/${occasionId}`, params: { useCache: 'false' } },
     },
   }));
   await Promise.all(tasks);
@@ -259,7 +259,7 @@ async function joinOccasion(request) {
           groupId: APP_NOTIFICATIONS.channels.occasion,
           // subtitle: `@${user.username || user.name} is requesting to join the ${side === 'B' ? 'Bride' : 'Groom'} Squad!😍`,
           subtitle: `@${user.username || user.name} is requesting to join the ${sideText} Squad!😍`,
-          payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+          payload: { screen: `/app/occasions/${occasionId}/users`, params: { useCache: 'false' } },
         },
       }),
     ]);
@@ -399,7 +399,7 @@ async function actionOnUser(request) {
             topic: common.getTopicName('user', userId),
             groupId: APP_NOTIFICATIONS.channels.occasion,
             subtitle: `Welcome to ${sideText} squad! 🎉`,
-            payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+            payload: { screen: `/app/occasions/${occasionId}/users`, params: { useCache: 'false' } },
           },
         }),
       ]);
@@ -478,7 +478,7 @@ async function actionOnUser(request) {
             topic: common.getTopicName('user', userId),
             groupId: APP_NOTIFICATIONS.channels.occasion,
             subtitle: `@${decoded.username} has updated your role, tap to view!`,
-            payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+            payload: { screen: `/app/occasions/${occasionId}/users`, params: { useCache: 'false' } },
           },
         }),
       ]);
@@ -500,7 +500,7 @@ async function actionOnUser(request) {
           topic: common.getTopicName('user', userId),
           groupId: APP_NOTIFICATIONS.channels.occasion,
           subtitle: `@${decoded.username} has made you occasion Admin. Tap to view!`,
-          payload: { screen: `/occasions/${occasionId}`, params: { useCache: 'false' } },
+          payload: { screen: `/app/occasions/${occasionId}`, params: { useCache: 'false' } },
         },
       });
       return getOccasionUser(request);
@@ -521,7 +521,7 @@ async function actionOnUser(request) {
           topic: common.getTopicName('occasion.admin', occasionId),
           groupId: APP_NOTIFICATIONS.channels.occasion,
           subtitle: `@${user.username || user.name} is requesting to join the ${sideText} Squad! 😍`,
-          payload: { screen: `/occasions/${occasionId}/users`, params: { useCache: 'false' } },
+          payload: { screen: `/app/occasions/${occasionId}/users`, params: { useCache: 'false' } },
         },
       });
       return getOccasionUser(request);
