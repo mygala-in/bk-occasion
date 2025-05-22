@@ -237,8 +237,11 @@ async function joinOccasion(request) {
   logger.info('joining user to occasion and sending fcm push');
   if (occasion.isPublic) {
     logger.info('public occasion, joining user');
-    await rdsOUsers.newOrUpdateUser({ userId: decoded.id, occasionId, role: OCCASION_CONFIG.ROLES.user.role, status: OCCASION_CONFIG.status.verified, side: side || null, isDeleted: false, verifierId: 0 });
-    await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${occasionId}`, type: 'join', status: 'A' } });
+    await Promise.all([
+      rdsOUsers.newOrUpdateUser({ userId: decoded.id, occasionId, role: OCCASION_CONFIG.ROLES.user.role, status: OCCASION_CONFIG.status.verified, side: side || null, isDeleted: false, verifierId: 0 }),
+      snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${occasionId}`, type: 'join', status: 'A' } }),
+      snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'add', data: { chatId: `GC_${occasion.code}`, by: { userId: decoded.id, username: decoded.username }, on: { userId: decoded.id, username: user.username } } }),
+    ]);
   } else {
     let sideText = 'occasion';
     if (side === 'B') sideText = 'Bride';
@@ -388,6 +391,7 @@ async function actionOnUser(request) {
       await Promise.all([
         rdsOUsers.updateUser(occasionId, userId, { status: OCCASION_CONFIG.status.verified, verifierId: decoded.id }),
         snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId, parentId: `occasion_${occasionId}`, type: 'join', status: 'A' } }),
+        snsHelper.pushToSNS('chat-bg-tasks', { service: 'chat', component: 'cuser', action: 'add', data: { chatId: `GC_${occasion.code}`, by: { userId: decoded.id, username: decoded.username }, on: { userId, username: user.username } } }),
         snsHelper.pushToSNS('fcm', {
           service: 'notification',
           component: 'notification',
