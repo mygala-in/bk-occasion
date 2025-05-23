@@ -145,7 +145,7 @@ async function createNewOccasion(request) {
         }
       });
     }
-    Object.assign(oObj, { vendors: vIds });
+    Object.assign(oObj, { vendors: JSON.stringify(vIds) });
   }
   logger.info('new occasion object ', oObj);
   const { insertId } = await rdsOccasions.newOccasion(oObj);
