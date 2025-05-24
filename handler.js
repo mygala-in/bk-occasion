@@ -135,17 +135,10 @@ async function createNewOccasion(request) {
   if (oObj.tillTime) oObj.tillTime = common.convertToDate(oObj.tillTime);
 
   if (decoded.role === 2) {
-    const vIds = [];
     logger.info('adding vendor to occasion');
     const vendor = await rdsVendors.getVendors(decoded.id);
-    if (!_.isEmpty(vendor.items)) {
-      vendor.items.forEach((v) => {
-        if (v.status === VENDOR_CONFIG.status.approved) {
-          vIds.push(v.id);
-        }
-      });
-    }
-    Object.assign(oObj, { vendors: JSON.stringify(vIds) });
+    const vIds = vendor.items.filter(v => v.status === VENDOR_CONFIG.status.approved).map(v => v.id);
+    if (!_.isEmpty(vIds)) Object.assign(oObj, { vendors: JSON.stringify(vIds) });
   }
   logger.info('new occasion object ', oObj);
   const { insertId } = await rdsOccasions.newOccasion(oObj);
