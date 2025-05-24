@@ -14,7 +14,7 @@ const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const rdsVendors = require('./bk-utils/rds/rds.vendor.helper');
 
-const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
+const { APP_NOTIFICATIONS, OCCASION_CONFIG, VENDOR_CONFIG } = constants;
 
 
 async function getOccasion(request) {
@@ -134,6 +134,12 @@ async function createNewOccasion(request) {
   if (oObj.fromTime) oObj.fromTime = common.convertToDate(oObj.fromTime);
   if (oObj.tillTime) oObj.tillTime = common.convertToDate(oObj.tillTime);
 
+  if (decoded.role === 2) {
+    logger.info('adding approved vendors to occasion');
+    const vendors = await rdsVendors.getVendors(decoded.id);
+    const vIds = vendors.items.filter((k) => k.status === VENDOR_CONFIG.status.approved).map((v) => v.id);
+    if (!_.isEmpty(vIds)) Object.assign(oObj, { vendors: JSON.stringify(vIds) });
+  }
   logger.info('new occasion object ', oObj);
   const { insertId } = await rdsOccasions.newOccasion(oObj);
 
