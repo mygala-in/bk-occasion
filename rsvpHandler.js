@@ -31,7 +31,7 @@ async function newOccasionRsvp(request) {
   if (occasion.isPublic === false) errors.handleError(401, 'requested occasion is private');
   logger.info('rsvp occasion request for ', occasionId);
   Object.assign(obj, { parentId: `occasion_${occasionId}` });
-  await rdsRsvps.insertNewRsvp({ obj });
+  await rdsRsvps.insertNewRsvp(obj);
   request.pathParameters.occasionId = occasionId;
   return getRsvpList(request);
 }
