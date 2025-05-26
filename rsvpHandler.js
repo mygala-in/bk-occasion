@@ -55,7 +55,8 @@ async function updateRsvp(request) {
   if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
   logger.info(decoded.id, userId);
   const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
-  await rdsRsvps.updateRsvp({ parentId: `occasion_${occasionId}`, userId, obj });
+  const parentId = `occasion_${occasionId}`;
+  await rdsRsvps.updateRsvp(parentId, userId, obj);
   request.pathParameters.occasionId = occasionId;
   return getRsvpByUser(request);
 }
@@ -65,7 +66,7 @@ async function getRsvpSummary(request) {
   const { occasionId } = request.pathParameters;
   const resp = { entity: 'collection', items: [], count: 0 };
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
-  const yUsers = _.filter(resp.items.users, (user) => user.rsvp === 'Y');
+  const yUsers = _.filter(rsvp, (user) => user.rsvp === 'Y');
   if (!_.isEmpty(yUsers)) return resp;
   const recentRsvp = _.first(rsvp, 5);
   resp.items.recents = await Promise.all(recentRsvp.items.map(async (item) => {
