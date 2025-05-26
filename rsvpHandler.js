@@ -53,6 +53,7 @@ async function updateRsvp(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId, userId } = pathParameters;
   if (decoded.id !== userId) errors.handleError(401, 'unauthorized');
+  logger.info(decoded.id, userId);
   const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
   await rdsRsvps.updateRsvp({ parentId: `occasion_${occasionId}`, userId, obj });
   request.pathParameters.occasionId = occasionId;
