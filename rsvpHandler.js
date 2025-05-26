@@ -69,7 +69,7 @@ async function getRsvpSummary(request) {
       if (item.userId) {
         const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
         logger.info('item info', { ...item, user });
-        return { ...item, user };
+        return { ...item, ...user };
       }
       logger.info(item);
       return item;
