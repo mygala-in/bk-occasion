@@ -10,8 +10,17 @@ const jwtHelper = require('./bk-utils/jwt.helper');
 
 
 async function getRsvpList(request) {
+  const { include } = request.queryStringParameters;
   const { occasionId } = request.pathParameters;
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
+  if (include === 'users') {
+    rsvp.items = await Promise.all(
+      rsvp.items.map(async (v) => {
+        const user = await rdsUsers.getUserFields(v.userId, constants.MINI_PROFILE_FIELDS);
+        return { ...v, user };
+      }),
+    );
+  }
   return rsvp;
 }
 
@@ -82,24 +91,6 @@ async function getRsvpSummary(request) {
   return resp;
 }
 
-
-//   const resp1 = { entity: 'collection', items: [], count: 0 };
-//   if (!_.isEmpty(rsvp.items)) {
-//     resp.items.users = await Promise.all(rsvp.items.map(async (item) => {
-//       if (item.userId) {
-//         const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
-//         return { ...item, user };
-//       }
-//       return item;
-//     }));
-
-//     // const yUsers = _.filter(resp.items.users, (user) => user.rsvp === 'Y');
-//     // resp.items.recents = _.first(yUsers, 5);
-//     // resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
-//     // resp.items.count = resp.items.length;
-//   }
-//   return resp;
-// }
 
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
