@@ -89,8 +89,9 @@ async function getRsvpSummary(request) {
       }
       return item;
     }));
+    resp.items = recentRsvps;
+    logger.info('recentrsvp object object', recentRsvp, resp);
   }
-  logger.info('recentrsvp object object', recentRsvps);
   logger.info('resp', resp);
   resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
   resp.items.count = resp.items.length;
