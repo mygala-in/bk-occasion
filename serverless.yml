@@ -83,10 +83,6 @@ functions:
           method: put
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{occasionId}/rsvp
-          method: put
-          cors: ${self:custom.customCors}
-      - http:
           path: /v1/{occasionId}/users
           method: get
           cors: ${self:custom.customCors}
@@ -124,6 +120,26 @@ functions:
           cors: ${self:custom.customCors}
       - http:
           path: v1/{occasionId}/event/{eventId}/assets
+          method: get
+          cors: ${self:custom.customCors}
+  rsvp:
+    name: ${self:custom.config.envPrefix}-occasion-rsvp-apis
+    handler: rsvpHandler.invoke
+    events:
+      - http:
+          path: /v1/{occasionId}/rsvp
+          method: post
+          cors: ${self:custom.customCors}
+      - http:
+          path: /v1/{occasionId}/rsvp/{userId}
+          method: any
+          cors: ${self:custom.customCors}
+      - http:
+          path: /v1/{occasionId}/rsvp/list
+          method: get
+          cors: ${self:custom.customCors}
+      - http:
+          path: /v1/{occasionId}/rsvp/summary
           method: get
           cors: ${self:custom.customCors}
   occasion-bg-tasks:
