@@ -76,6 +76,7 @@ async function getRsvpSummary(request) {
     resp.items.recents = _.first(yUsers, 5);
     resp.items.count = yUsers.length;
   }
+  return resp;
 }
 
 async function invoke(event, context, callback) {
