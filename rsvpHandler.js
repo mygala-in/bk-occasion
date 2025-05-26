@@ -79,23 +79,21 @@ async function getRsvpSummary(request) {
   logger.info('rsvp', rsvp);
   const yUsers = _.filter(rsvp.items, (user) => user.rsvp === 'Y');
   logger.info('yUsers', yUsers);
-  if (!_.isEmpty(yUsers)) {
-    const recentRsvp = _.first(yUsers, 5);
-    logger.info('recent rsvp', recentRsvp);
-    const recentRsvps = await Promise.all(recentRsvp.map(async (item) => {
-      if (item.userId) {
-        const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
-        return { ...item, user };
-      }
-      return item;
-    }));
-    resp.items = recentRsvps;
-    logger.info('recentrsvp object object', recentRsvp, resp);
-  }
-  logger.info('resp', resp);
-  resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
-  resp.items.count = resp.items.length;
-  logger.info('response', resp);
+
+  if (_.isEmpty(yUsers)) return resp;
+  const recentRsvp = _.first(yUsers, 5);
+  logger.info('recent rsvp', recentRsvp);
+  const recentRsvps = await Promise.all(recentRsvp.map(async (item) => {
+    if (item.userId) {
+      const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
+      return { ...item, user };
+    }
+    return item;
+  }));
+  const guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
+
+  resp.items = { recents: recentRsvps, guests };
+  resp.count = resp.items.length;
   return resp;
 }
 
