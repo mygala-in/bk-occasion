@@ -52,7 +52,7 @@ async function getRsvpByUser(request) {
 async function updateRsvp(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId, userId } = pathParameters;
-  if (decoded.id !== userId) errors.handleError(401, 'unauthorized');
+  if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
   logger.info(decoded.id, userId);
   const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
   await rdsRsvps.updateRsvp({ parentId: `occasion_${occasionId}`, userId, obj });
@@ -63,24 +63,39 @@ async function updateRsvp(request) {
 
 async function getRsvpSummary(request) {
   const { occasionId } = request.pathParameters;
-  const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   const resp = { entity: 'collection', items: [], count: 0 };
-  if (!_.isEmpty(rsvp.items)) {
-    resp.items.users = await Promise.all(rsvp.items.map(async (item) => {
-      if (item.userId) {
-        const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
-        return { ...item, user };
-      }
-      return item;
-    }));
-
-    // const yUsers = _.filter(resp.items.users, (user) => user.rsvp === 'Y');
-    // resp.items.recents = _.first(yUsers, 5);
-    // resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
-    // resp.items.count = resp.items.length;
-  }
+  const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
+  const yUsers = _.filter(resp.items.users, (user) => user.rsvp === 'Y');
+  if (!_.isEmpty(yUsers)) return resp;
+  const recentRsvp = _.first(rsvp, 5);
+  resp.items.recents = await Promise.all(recentRsvp.items.map(async (item) => {
+    if (item.userId) {
+      const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
+      return { ...item, user };
+    }
+    return item;
+  }));
   return resp;
 }
+
+
+//   const resp1 = { entity: 'collection', items: [], count: 0 };
+//   if (!_.isEmpty(rsvp.items)) {
+//     resp.items.users = await Promise.all(rsvp.items.map(async (item) => {
+//       if (item.userId) {
+//         const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
+//         return { ...item, user };
+//       }
+//       return item;
+//     }));
+
+//     // const yUsers = _.filter(resp.items.users, (user) => user.rsvp === 'Y');
+//     // resp.items.recents = _.first(yUsers, 5);
+//     // resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
+//     // resp.items.count = resp.items.length;
+//   }
+//   return resp;
+// }
 
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
