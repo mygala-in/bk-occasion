@@ -30,7 +30,8 @@ async function newOccasionRsvp(request) {
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
   if (occasion.isPublic === false) errors.handleError(401, 'requested occasion is private');
   logger.info('rsvp occasion request for ', occasionId);
-  await rdsRsvps.insertNewRsvp({ parentId: `occasion_${occasionId}`, obj });
+  Object.assign(obj, { parentId: `occasion_${occasionId}` });
+  await rdsRsvps.insertNewRsvp({ obj });
   request.pathParameters.occasionId = occasionId;
   return getRsvpList(request);
 }
