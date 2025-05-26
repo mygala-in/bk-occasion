@@ -47,7 +47,7 @@ async function newOccasionRsvp(request) {
 
 
 async function getRsvpByUser(request) {
-  const { decoded } = request.decoded;
+  const { decoded } = request;
   const { occasionId, userId } = request.pathParameters;
   if (decoded.id !== userId) errors.handleError(401, 'unauthorized');
 
@@ -61,6 +61,7 @@ async function getRsvpByUser(request) {
 async function updateRsvp(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId, userId } = pathParameters;
+  logger.info(decoded);
   if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
   logger.info(decoded.id, userId);
   const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
@@ -76,8 +77,8 @@ async function getRsvpSummary(request) {
   const resp = { entity: 'collection', items: [], count: 0 };
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   const yUsers = _.filter(rsvp.items, (user) => user.rsvp === 'Y');
-  if (!_.isEmpty) {
-    const recentRsvp = _.first(rsvp, 5);
+  if (!_.isEmpty(yUsers)) {
+    const recentRsvp = _.first(yUsers, 5);
     resp.items.recents = await Promise.all(recentRsvp.items.map(async (item) => {
       if (item.userId) {
         const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
