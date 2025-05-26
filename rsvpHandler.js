@@ -68,10 +68,8 @@ async function getRsvpSummary(request) {
     resp.items.users = await Promise.all(rsvp.items.map(async (item) => {
       if (item.userId) {
         const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
-        logger.info('item info', { ...item, user });
-        return { ...item, ...user };
+        return { ...item, user };
       }
-      logger.info(item);
       return item;
     }));
     const yUsers = _.filter(resp.items.users.rsvp, (user) => user.rsvp === 'Y');
