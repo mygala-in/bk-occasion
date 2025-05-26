@@ -10,10 +10,10 @@ const jwtHelper = require('./bk-utils/jwt.helper');
 
 
 async function getRsvpList(request) {
-  const { include } = request.queryStringParameters;
   const { occasionId } = request.pathParameters;
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
-  if (include === 'users') {
+
+  if (request.queryStringParameters.include === 'users') {
     rsvp.items = await Promise.all(
       rsvp.items.map(async (v) => {
         if (!_.isEmpty(v.userId)) {
