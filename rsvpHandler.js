@@ -82,7 +82,7 @@ async function getRsvpSummary(request) {
   if (!_.isEmpty(yUsers)) {
     const recentRsvp = _.first(yUsers, 5);
     logger.info('recent rsvp', recentRsvp);
-    resp.items.recents = await Promise.all(recentRsvp.items.map(async (item) => {
+    resp.items.recents = await Promise.all(recentRsvp.map(async (item) => {
       if (item.userId) {
         const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
         return { ...item, user };
