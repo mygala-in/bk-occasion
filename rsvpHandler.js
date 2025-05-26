@@ -76,7 +76,9 @@ async function getRsvpSummary(request) {
     }));
     const yUsers = _.filter(resp.items.users.rsvp, (user) => user.rsvp === 'Y');
     resp.items.recents = _.first(yUsers, 5);
-    resp.items.count = yUsers.length;
+    resp.items.guests = yUsers.length;
+    resp.items.count = resp.items.length;
+    logger.info('rsvp summary response', resp);
   }
   return resp;
 }
