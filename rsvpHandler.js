@@ -16,8 +16,11 @@ async function getRsvpList(request) {
   if (include === 'users') {
     rsvp.items = await Promise.all(
       rsvp.items.map(async (v) => {
-        const user = await rdsUsers.getUserFields(v.userId, constants.MINI_PROFILE_FIELDS);
-        return { ...v, user };
+        if (!_.isEmpty(v.userId)) {
+          const user = await rdsUsers.getUserFields(v.userId, constants.MINI_PROFILE_FIELDS);
+          return { ...v, user };
+        }
+        return v;
       }),
     );
   }
