@@ -66,16 +66,19 @@ async function getRsvpSummary(request) {
   const { occasionId } = request.pathParameters;
   const resp = { entity: 'collection', items: [], count: 0 };
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
-  const yUsers = _.filter(rsvp, (user) => user.rsvp === 'Y');
-  if (!_.isEmpty(yUsers)) return resp;
-  const recentRsvp = _.first(rsvp, 5);
-  resp.items.recents = await Promise.all(recentRsvp.items.map(async (item) => {
-    if (item.userId) {
-      const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
-      return { ...item, user };
-    }
-    return item;
-  }));
+  const yUsers = _.filter(rsvp.items, (user) => user.rsvp === 'Y');
+  if (!_.isEmpty) {
+    const recentRsvp = _.first(rsvp, 5);
+    resp.items.recents = await Promise.all(recentRsvp.items.map(async (item) => {
+      if (item.userId) {
+        const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
+        return { ...item, user };
+      }
+      return item;
+    }));
+  }
+  resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
+  resp.items.count = resp.items.length;
   return resp;
 }
 
