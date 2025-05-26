@@ -72,10 +72,11 @@ async function getRsvpSummary(request) {
       }
       return item;
     }));
-    const yUsers = _.filter(resp.items.users, (user) => user.rsvp === 'Y');
-    resp.items.recents = _.first(yUsers, 5);
-    resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
-    resp.items.count = resp.items.length;
+
+    // const yUsers = _.filter(resp.items.users, (user) => user.rsvp === 'Y');
+    // resp.items.recents = _.first(yUsers, 5);
+    // resp.items.guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
+    // resp.items.count = resp.items.length;
   }
   return resp;
 }
