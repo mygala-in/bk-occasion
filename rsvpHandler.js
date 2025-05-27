@@ -12,18 +12,10 @@ const jwtHelper = require('./bk-utils/jwt.helper');
 async function getRsvpList(request) {
   const { queryStringParameters } = request;
   const { occasionId } = request.pathParameters;
-  logger.info('request', request);
-  const { includes } = _.get(request, 'queryStringParameters', '');
-  const test = request.queryStringParameters.include;
-  const include = _.get(request, 'queryStringParameters.include', '');
-  logger.info('this is not displaying', include);
-  logger.info('test', test);
-  let include1 = [];
-  if (queryStringParameters && queryStringParameters.include) include1 = queryStringParameters.include;
-  logger.info('include1', include1);
+  let include;
+  if (queryStringParameters && queryStringParameters.include) include = queryStringParameters.include;
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
-  logger.info('include', includes);
-  if (includes === 'users') logger.info('if condition');
+  if (include === 'users') logger.info('if condition');
   rsvp.items = await Promise.all(rsvp.items.map(async (item) => {
     if (item.userId) {
       const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
