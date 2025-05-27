@@ -14,16 +14,15 @@ async function getRsvpList(request) {
   const include = _.get(request, 'queryStringParameters.include', '');
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
 
-  if (include === 'users') {
-    logger.info('if condition');
-    rsvp.items = await Promise.all(rsvp.map(async (item) => {
-      if (item.userId) {
-        const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
-        return { ...item, user };
-      }
-      return item;
-    }));
-  }
+  if (include === 'users') logger.info('if condition');
+  rsvp.items = await Promise.all(rsvp.items.map(async (item) => {
+    if (item.userId) {
+      const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
+      return { ...item, user };
+    }
+    return item;
+  }));
+  // }
   rsvp.count = rsvp.items.length;
   return rsvp;
 }
@@ -96,8 +95,7 @@ async function getRsvpSummary(request) {
   }));
   const guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
 
-  resp.items.recents = recentRsvps;
-  resp.items.guests = guests;
+  resp.items = { recents: recentRsvps, guests };
   resp.count = resp.items.length;
   return resp;
 }
