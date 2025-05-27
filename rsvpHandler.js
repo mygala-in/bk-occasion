@@ -13,7 +13,7 @@ async function getRsvpList(request) {
   const { occasionId } = request.pathParameters;
   const include = _.get(request, 'queryStringParameters.include', '');
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
-
+  logger.info(include);
   if (include === 'users') logger.info('if condition');
   rsvp.items = await Promise.all(rsvp.items.map(async (item) => {
     if (item.userId) {
