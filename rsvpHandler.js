@@ -13,6 +13,8 @@ async function getRsvpList(request) {
   const { occasionId } = request.pathParameters;
   logger.info('request', request);
   const include = _.get(request, 'queryStringParameters.include', '');
+  const test = request.queryStringParameters.include;
+  logger.info('test', test);
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   logger.info('include', include);
   if (include === 'users') logger.info('if condition');
@@ -53,7 +55,7 @@ async function newOccasionRsvp(request) {
 async function getRsvpByUser(request) {
   const { decoded } = request;
   const { occasionId, userId } = request.pathParameters;
-  if (decoded.id !== userId) errors.handleError(401, 'unauthorized');
+  if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
 
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   const uRsvp = _.find(rsvp.items, (item) => item.userId === userId);
