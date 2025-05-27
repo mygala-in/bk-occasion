@@ -15,6 +15,7 @@ async function getRsvpList(request) {
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
 
   if (include === 'users') {
+    logger.info('if condition');
     rsvp.items = await Promise.all(rsvp.map(async (item) => {
       if (item.userId) {
         const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
@@ -95,8 +96,8 @@ async function getRsvpSummary(request) {
   }));
   const guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
 
-  resp.items.push(...recentRsvps);
-  resp.items.push(guests);
+  resp.items.recents = recentRsvps;
+  resp.items.guests = guests;
   resp.count = resp.items.length;
   return resp;
 }
