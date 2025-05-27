@@ -11,6 +11,7 @@ const jwtHelper = require('./bk-utils/jwt.helper');
 
 async function getRsvpList(request) {
   const { occasionId } = request.pathParameters;
+  logger.info('request', request);
   const include = _.get(request, 'queryStringParameters.include', '');
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   logger.info('include', include);
