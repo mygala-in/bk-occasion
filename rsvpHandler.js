@@ -15,16 +15,15 @@ async function getRsvpList(request) {
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
 
   if (include === 'users') {
-    rsvp.items = await Promise.all(
-      rsvp.items.map(async (v) => {
-        if (!_.isEmpty(v.userId)) {
-          const user = await rdsUsers.getUserFields(v.userId, constants.MINI_PROFILE_FIELDS);
-          return { ...v, user };
-        }
-        return v;
-      }),
-    );
+    rsvp.items = await Promise.all(rsvp.map(async (item) => {
+      if (item.userId) {
+        const user = await rdsUsers.getUserFields(item.userId, constants.MINI_PROFILE_FIELDS);
+        return { ...item, user };
+      }
+      return item;
+    }));
   }
+  rsvp.count = rsvp.items.length;
   return rsvp;
 }
 
