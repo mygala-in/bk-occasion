@@ -11,7 +11,7 @@ const jwtHelper = require('./bk-utils/jwt.helper');
 
 async function getRsvpList(request) {
   const { occasionId } = request.pathParameters;
-  const include = _.get(request, 'queryStringParameters.include', []);
+  const include = _.get(request, 'queryStringParameters.include', '');
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
 
   if (include === 'users') {
@@ -96,7 +96,8 @@ async function getRsvpSummary(request) {
   }));
   const guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
 
-  resp.items = { recents: recentRsvps, guests };
+  resp.items.push(...recentRsvps);
+  resp.items.push(guests);
   resp.count = resp.items.length;
   return resp;
 }
