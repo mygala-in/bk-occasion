@@ -56,7 +56,7 @@ async function getRsvpByUser(request) {
   if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
 
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
-  const uRsvp = _.find(rsvp.items, (item) => item.userId === userId);
+  const uRsvp = _.find(rsvp.items, (item) => item.userId === parseInt(userId, 10));
   if (!_.uRsvp) errors.handleError(404, 'rsvp not found for user');
   return uRsvp;
 }
