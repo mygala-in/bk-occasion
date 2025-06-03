@@ -78,7 +78,8 @@ async function updateRsvp(request) {
 
 async function getRsvpSummary(request) {
   const { occasionId } = request.pathParameters;
-  const resp = { entity: 'collection', items: [], count: 0 };
+  const resp = { entity: 'summary', count: 0, users: [] };
+
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   logger.info('rsvp', rsvp);
   const yUsers = _.filter(rsvp.items, (user) => user.rsvp === 'Y');
@@ -94,10 +95,8 @@ async function getRsvpSummary(request) {
     }
     return item;
   }));
-  const guests = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
-
-  resp.items = { recents: recentRsvps, guests };
-  resp.count = resp.items.length;
+  resp.count = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
+  resp.users = recentRsvps;
   return resp;
 }
 
