@@ -342,7 +342,7 @@ async function getOccasionByCode(request) {
   ]);
   occasion.host = uObj;
 
-  occasion.rsvpSummary = rsvps.getRsvpSummary(occasion.id);
+  occasion.rsvpSummary = await rsvps.getRsvpSummary(occasion.id);
 
   logger.info('extras ', JSON.stringify(extras));
   Object.assign(occasion, { ...extras });
