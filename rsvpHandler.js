@@ -66,7 +66,7 @@ async function updateRsvp(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId, userId } = pathParameters;
   logger.info(decoded);
-  
+
   if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
   logger.info(decoded.id, userId);
   const occasion = await rdsOccasions.getOccasion(occasionId);
