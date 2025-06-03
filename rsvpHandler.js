@@ -12,6 +12,7 @@ const jwtHelper = require('./bk-utils/jwt.helper');
 async function getRsvpList(request) {
   const { occasionId } = request.pathParameters;
   const include = _.get(request, 'queryStringParameters.include', '');
+  logger.info('include', include);
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   if (include === 'users') {
     rsvp.items = await Promise.all(rsvp.items.map(async (item) => {
@@ -39,6 +40,7 @@ async function newOccasionRsvp(request) {
   }
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+
   if (occasion.isPublic === false) errors.handleError(401, 'requested occasion is private');
   logger.info('rsvp occasion request for ', occasionId);
   Object.assign(obj, { parentId: `occasion_${occasionId}` });
