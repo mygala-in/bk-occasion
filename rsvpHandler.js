@@ -66,9 +66,14 @@ async function updateRsvp(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId, userId } = pathParameters;
   logger.info(decoded);
+  
   if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
-
   logger.info(decoded.id, userId);
+  const occasion = await rdsOccasions.getOccasion(occasionId);
+  if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+  const rsvp = await getRsvpByUser(request);
+  if (_.isEmpty(rsvp)) errors.handleError(404, 'rsvp not found for user');
+
   const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
   const parentId = `occasion_${occasionId}`;
   await rdsRsvps.updateRsvp(parentId, userId, obj);
@@ -79,7 +84,7 @@ async function updateRsvp(request) {
 
 async function getRsvpSummary(request) {
   const { occasionId } = request.pathParameters;
-  const resp = { entity: 'summary', count: 0, users: [] };
+  const resp = { entity: 'rsvp', count: 0, users: [] };
 
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   logger.info('rsvp', rsvp);
