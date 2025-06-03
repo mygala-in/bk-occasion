@@ -153,4 +153,5 @@ async function invoke(event, context, callback) {
 
 module.exports = {
   invoke,
+  getRsvpSummary,
 };

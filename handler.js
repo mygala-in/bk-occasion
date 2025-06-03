@@ -13,6 +13,7 @@ const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const rdsVendors = require('./bk-utils/rds/rds.vendor.helper');
+const rsvps = require('./rsvpHandler');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG, VENDOR_CONFIG } = constants;
 
@@ -341,13 +342,7 @@ async function getOccasionByCode(request) {
   ]);
   occasion.host = uObj;
 
-  const ouser = await rdsOUsers.getUsers(occasion.id);
-  const users = _.filter(ouser.items, (user) => user.rsvp === 'Y');
-  if (!_.isEmpty(users)) {
-    const oUser = _.first(users, 5);
-    const rsvpUsers = await Promise.all(oUser.map((user) => rdsUsers.getUserFields(user.userId, constants.MINI_PROFILE_FIELDS)));
-    occasion.rsvpSummary = { entity: 'rsvp', count: users.length, users: rsvpUsers };
-  }
+  occasion.rsvpSummary = rsvps.getRsvpSummary(occasion.id);
 
   logger.info('extras ', JSON.stringify(extras));
   Object.assign(occasion, { ...extras });
