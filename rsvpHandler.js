@@ -11,7 +11,7 @@ const jwtHelper = require('./bk-utils/jwt.helper');
 
 async function getRsvpList(request) {
   const { occasionId } = request.pathParameters;
-  const include = _.get(request, 'queryStringParameters.include', '');
+  const include = _.get(request.queryStringParameters, 'include', '');
   logger.info('include', include);
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   if (include === 'users') {
@@ -67,6 +67,7 @@ async function updateRsvp(request) {
   const { occasionId, userId } = pathParameters;
   logger.info(decoded);
   if (decoded.id !== parseInt(userId, 10)) errors.handleError(401, 'unauthorized');
+
   logger.info(decoded.id, userId);
   const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
   const parentId = `occasion_${occasionId}`;
