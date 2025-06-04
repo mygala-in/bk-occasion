@@ -9,11 +9,11 @@ const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
 
 
 async function getRsvpList(request) {
-  const { parentId } = request.pathParameters;
+  const { occasionId } = request.pathParameters;
   const include = _.get(request.queryStringParameters, 'include', '');
   logger.info('include', include);
 
-  const rsvp = await rdsRsvps.getRsvpList(parentId);
+  const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
   if (include === 'users') {
     const uIds = rsvp.items.map((v) => v.userId).filter(Boolean);
     if (uIds.length > 0) {

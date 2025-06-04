@@ -135,11 +135,11 @@ functions:
           method: post
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{occasionId}/rsvp/{userId}
+          path: /v1/{occasionId}/rsvp
           method: any
           cors: ${self:custom.customCors}
       - http:
-          path: /v1/{parentId}/rsvp/list
+          path: /v1/{occasionId}/rsvp/list
           method: get
           cors: ${self:custom.customCors}
   occasion-bg-tasks:
