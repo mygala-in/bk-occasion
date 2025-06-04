@@ -33,7 +33,7 @@ async function getRsvpList(request) {
 
 async function newOccasionRsvp(request) {
   const { occasionId } = request.pathParameters;
-
+  logger.info(request);
   const obj = _.pick(request.body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
   if (request.decoded) {
     logger.info('decoded present in request');
