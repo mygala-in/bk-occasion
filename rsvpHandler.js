@@ -35,7 +35,7 @@ async function newOccasionRsvp(request) {
   const { occasionId } = request.pathParameters;
 
   const obj = _.pick(request.body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
-  if (request.decoded && _.has(request.decoded, 'id')) {
+  if (request.decoded) {
     logger.info('decoded present in request');
     obj.userId = request.decoded.id;
     obj.name = request.decoded.name || request.decoded.username;
