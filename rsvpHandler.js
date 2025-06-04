@@ -36,6 +36,7 @@ async function newOccasionRsvp(request) {
 
   const obj = _.pick(request.body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
   if (_.has(request, 'decoded')) {
+    logger.info('decoded', JSON.stringify(request));
     obj.userId = request.decoded.id;
     obj.name = request.decoded.name || request.decoded.username;
   }
