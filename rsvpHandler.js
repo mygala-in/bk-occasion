@@ -35,7 +35,7 @@ async function newOccasionRsvp(request) {
   const { occasionId } = request.pathParameters;
 
   const obj = _.pick(request.body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
-  if (_.has(request, 'decoded.id')) {
+  if (request.decoded && _.has(request.decoded, 'id')) {
     logger.info('decoded present in request');
     obj.userId = request.decoded.id;
     obj.name = request.decoded.name || request.decoded.username;
@@ -43,7 +43,6 @@ async function newOccasionRsvp(request) {
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
 
-  // if (occasion.isPublic === false) errors.handleError(401, 'requested occasion is private');
   logger.info('rsvp occasion request for ', occasionId);
   Object.assign(obj, { parentId: `occasion_${occasionId}` });
   await rdsRsvps.insertNewRsvp(obj);
