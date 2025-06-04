@@ -342,7 +342,7 @@ async function getOccasionByCode(request) {
   ]);
   occasion.host = uObj;
 
-  const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasionId}`);
+  const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasion.id}`);
   const yUsers = _.filter(rsvp.items, (user) => user.rsvp === 'Y');
   logger.info('yUsers', yUsers);
   if (!_.isEmpty(yUsers)) {
