@@ -13,6 +13,7 @@ const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
 const rdsVendors = require('./bk-utils/rds/rds.vendor.helper');
+const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG, VENDOR_CONFIG } = constants;
 
@@ -341,12 +342,23 @@ async function getOccasionByCode(request) {
   ]);
   occasion.host = uObj;
 
-  const ouser = await rdsOUsers.getUsers(occasion.id);
-  const users = _.filter(ouser.items, (user) => user.rsvp === 'Y');
-  if (!_.isEmpty(users)) {
-    const oUser = _.first(users, 5);
-    const rsvpUsers = await Promise.all(oUser.map((user) => rdsUsers.getUserFields(user.userId, constants.MINI_PROFILE_FIELDS)));
-    occasion.rsvpSummary = { entity: 'rsvp', count: users.length, users: rsvpUsers };
+  const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasion.id}`);
+  const yUsers = _.filter(rsvp.items, (user) => user.rsvp === 'Y');
+  logger.info('yUsers', yUsers);
+  if (!_.isEmpty(yUsers)) {
+    let recentRsvp = _.first(yUsers, 5);
+    const uIds = recentRsvp.map((u) => u.userId).filter(Boolean);
+    logger.info('recent rsvp user ids', uIds);
+    const miniProfiles = await rdsUsers.getUserFieldsIn(uIds, constants.MINI_PROFILE_FIELDS);
+    recentRsvp = recentRsvp.map((item) => {
+      if (item.userId) {
+        const user = miniProfiles.items.find((u) => u.id === item.userId);
+        return { ...item, user };
+      }
+      return item;
+    });
+    const count = _.reduce(yUsers, (sum, user) => sum + (user.guests || 0), 0) + yUsers.length;
+    occasion.rsvpSummary = { entity: 'rsvp', count, users: recentRsvp };
   }
 
   logger.info('extras ', JSON.stringify(extras));
