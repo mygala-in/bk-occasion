@@ -65,7 +65,7 @@ async function newOrUpdateRsvp(request) {
 
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
-  const user = await rdsUsers.getUser(decoded.id);
+  const user = await rdsUsers.getUserById(decoded.id);
   if (_.isEmpty(user)) errors.handleError(404, 'user not found');
   if (user.status !== OCCASION_CONFIG.status.verified) errors.handleError(403, 'user not verified');
 
