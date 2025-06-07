@@ -34,7 +34,7 @@ async function getRsvpList(request) {
 async function newOccasionRsvp(request) {
   const { occasionId } = request.pathParameters;
   logger.info(request);
-  const obj = _.pick(request.body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
+  const obj = _.pick(request.body, ['rsvp', 'name', 'side', 'guests', 'accommodation']);
   if (request.decoded) {
     logger.info('decoded present in request');
     obj.userId = request.decoded.id;
@@ -47,6 +47,7 @@ async function newOccasionRsvp(request) {
   Object.assign(obj, { parentId: `occasion_${occasionId}` });
   await rdsRsvps.insertNewRsvp(obj);
   request.pathParameters.occasionId = occasionId;
+  request.queryStringParameters = { include: 'users' };
   return getRsvpList(request);
 }
 
@@ -72,7 +73,7 @@ async function updateRsvp(request) {
   const rsvp = await getRsvpByUser(request);
   if (_.isEmpty(rsvp)) errors.handleError(404, 'rsvp not found for user');
 
-  const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accomodation']);
+  const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accommodation']);
   const parentId = `occasion_${occasionId}`;
   await rdsRsvps.updateRsvp(parentId, decoded.id, obj);
   request.pathParameters.occasionId = occasionId;
