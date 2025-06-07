@@ -35,11 +35,6 @@ async function newOccasionRsvp(request) {
   const { occasionId } = request.pathParameters;
   logger.info(request);
   const obj = _.pick(request.body, ['rsvp', 'name', 'side', 'guests', 'accommodation']);
-  if (request.decoded) {
-    logger.info('decoded present in request');
-    obj.userId = request.decoded.id;
-    obj.name = request.decoded.name || request.decoded.username;
-  }
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
 
@@ -63,19 +58,18 @@ async function getRsvpByUser(request) {
 }
 
 
-async function updateRsvp(request) {
+async function newOrUpdateRsvp(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId } = pathParameters;
 
   const occasion = await rdsOccasions.getOccasion(occasionId);
-
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
-  const rsvp = await getRsvpByUser(request);
-  if (_.isEmpty(rsvp)) errors.handleError(404, 'rsvp not found for user');
 
-  const obj = _.pick(body, ['rsvp', 'name', 'side', 'guests', 'accommodation']);
+  const obj = _.pick(body, ['rsvp', 'side', 'guests', 'accommodation']);
+  obj.userId = decoded.id;
+  obj.name = decoded.name || decoded.username;
   const parentId = `occasion_${occasionId}`;
-  await rdsRsvps.updateRsvp(parentId, decoded.id, obj);
+  await rdsRsvps.newOrUpdateRsvp(parentId, decoded.id, obj);
   request.pathParameters.occasionId = occasionId;
   return getRsvpByUser(request);
 }
@@ -98,7 +92,7 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/rsvp':
         switch (request.httpMethod) {
-          case 'PUT': resp = await updateRsvp(request);
+          case 'PUT': resp = await newOrUpdateRsvp(request);
             break;
           default: errors.handleError(400, 'invalid request path');
         }
