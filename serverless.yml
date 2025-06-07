@@ -130,10 +130,10 @@ functions:
           path: /v1/{occasionId}/rsvp/web
           method: post
           cors: ${self:custom.customCors}
-      - http:
-          path: /v1/{occasionId}/rsvp
-          method: any
-          cors: ${self:custom.customCors}
+      # - http:
+      #     path: /v1/{occasionId}/rsvp
+      #     method: any
+      #     cors: ${self:custom.customCors}
       - http:
           path: /v1/{occasionId}/rsvp/list
           method: get

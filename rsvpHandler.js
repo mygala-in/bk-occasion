@@ -7,6 +7,7 @@ const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
 
+const { OCCASION_CONFIG } = constants;
 
 async function getRsvpList(request) {
   const { occasionId } = request.pathParameters;
@@ -66,6 +67,7 @@ async function newOrUpdateRsvp(request) {
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
   const user = await rdsUsers.getUser(decoded.id);
   if (_.isEmpty(user)) errors.handleError(404, 'user not found');
+  if (user.status !== OCCASION_CONFIG.status.verified) errors.handleError(403, 'user not verified');
 
   const obj = _.pick(body, ['rsvp', 'side', 'guests', 'accommodation']);
   obj.userId = decoded.id;
@@ -84,10 +86,6 @@ async function invoke(event, context, callback) {
 
     let resp = {};
     switch (request.resourcePath) {
-      case '/v1/{occasionId}/rsvp/app':
-        resp = await newOccasionRsvp(request);
-        break;
-
       case '/v1/{occasionId}/rsvp/web':
         resp = await newOccasionRsvp(request);
         break;
