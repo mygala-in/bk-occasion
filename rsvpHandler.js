@@ -6,6 +6,7 @@ const constants = require('./bk-utils/constants');
 const rdsUsers = require('./bk-utils/rds/rds.users.helper');
 const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
 const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
+const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
 
 const { OCCASION_CONFIG } = constants;
 
@@ -65,7 +66,7 @@ async function newOrUpdateRsvp(request) {
 
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
-  const user = await rdsUsers.getUserById(decoded.id);
+  const user = await rdsOUsers.getUser(occasion.id, decoded.id);
   if (_.isEmpty(user)) errors.handleError(404, 'user not found');
   if (user.status !== OCCASION_CONFIG.status.verified) errors.handleError(403, 'user not verified');
 
