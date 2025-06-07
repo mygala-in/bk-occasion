@@ -347,7 +347,7 @@ async function getOccasionByCode(request) {
   logger.info('yUsers', yUsers);
   if (!_.isEmpty(yUsers)) {
     let recentRsvp = _.first(yUsers, 5);
-    const uIds = recentRsvp.map((u) => u.userId).filter(Boolean);
+    const uIds = recentRsvp.filter((u) => u.userId).map((k) => k.userId);
     logger.info('recent rsvp user ids', uIds);
     const miniProfiles = await rdsUsers.getUserFieldsIn(uIds, constants.MINI_PROFILE_FIELDS);
     recentRsvp = recentRsvp.map((item) => {
