@@ -68,8 +68,8 @@ async function newOrUpdateRsvp(request) {
   const obj = _.pick(body, ['rsvp', 'side', 'guests', 'accommodation']);
   obj.userId = decoded.id;
   obj.name = decoded.name || decoded.username;
-  const parentId = `occasion_${occasionId}`;
-  await rdsRsvps.newOrUpdateRsvp(parentId, decoded.id, obj);
+  obj.parentId = `occasion_${occasionId}`;
+  await rdsRsvps.newOrUpdateRsvp(obj);
   request.pathParameters.occasionId = occasionId;
   return getRsvpByUser(request);
 }
