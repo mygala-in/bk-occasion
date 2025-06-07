@@ -64,6 +64,8 @@ async function newOrUpdateRsvp(request) {
 
   const occasion = await rdsOccasions.getOccasion(occasionId);
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
+  const user = await rdsUsers.getUser(decoded.id);
+  if (_.isEmpty(user)) errors.handleError(404, 'user not found');
 
   const obj = _.pick(body, ['rsvp', 'side', 'guests', 'accommodation']);
   obj.userId = decoded.id;
