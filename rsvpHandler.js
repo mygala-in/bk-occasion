@@ -74,6 +74,7 @@ async function newOrUpdateRsvp(request) {
   obj.userId = decoded.id;
   obj.name = decoded.name || decoded.username;
   obj.parentId = `occasion_${occasionId}`;
+  if (user.side) obj.side = user.side;
   await rdsRsvps.newOrUpdateRsvp(obj);
   request.pathParameters.occasionId = occasionId;
   return getRsvpByUser(request);
