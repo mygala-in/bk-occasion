@@ -135,7 +135,7 @@ async function createNewOccasion(request) {
   if (oObj.fromTime) oObj.fromTime = common.convertToDate(oObj.fromTime);
   if (oObj.tillTime) oObj.tillTime = common.convertToDate(oObj.tillTime);
 
-  if (decoded.role === 2) {
+  if (decoded.role >= 2) {
     logger.info('adding approved vendors to occasion');
     const vendors = await rdsVendors.getVendors(decoded.id);
     const vIds = vendors.items.filter((k) => k.status === VENDOR_CONFIG.status.approved).map((v) => v.id);
