@@ -337,7 +337,7 @@ async function getOccasionByCode(request) {
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
 
   const [uObj, extras] = await Promise.all([
-    rdsUsers.getUserFields(occasion.creatorId, constants.MINI_PROFILE_FIELDS),
+    rdsUsers.getUserFields(occasion.creatorId, [...constants.MINI_PROFILE_FIELDS, 'role']),
     helper.occasionExtras(occasion.id, include),
   ]);
   occasion.host = uObj;
