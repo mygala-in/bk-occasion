@@ -154,7 +154,10 @@ async function createNewOccasion(request) {
   ]);
 
   await snsHelper.pushToSNS('post-bg-tasks', { service: 'post', component: 'post', action: 'add', data: { userId: decoded.id, parentId: `occasion_${insertId}`, type: 'join', status: 'A' } });
-  // TODO send an alert to indicate new occasion event was created
+  const user = await rdsUsers.getUserFields(decoded.id, [...constants.MINI_PROFILE_FIELDS, 'phone', 'role']);
+  const message = { content: `**New Invite**:\nLink: https://link.mygala.in/${code}/invite\nCreator: \n${JSON.stringify(user, null, 2)}` };
+  logger.info('pushing to discord-sns-notifier');
+  await snsHelper.pushToSNS('discord-sns-notifier', { service: 'discord', channel: 'invite', action: 'notify', data: message });
   request.pathParameters = { occasionId: insertId };
   return getOccasion(request);
 }
