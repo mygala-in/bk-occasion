@@ -573,6 +573,26 @@ async function getOccasionVendors(request) {
   return resp;
 }
 
+async function updateOccasionAccounts(request) {
+  const { decoded, pathParameters, body } = request;
+  const { occasionId } = pathParameters;
+  logger.info('occasion accounts update request');
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+
+  const accountIds = Object.values(body.accounts);
+  const userIds = await rdsUsers.getIdsByAccountIds(accountIds);
+  if (userIds.length !== accountIds.length) errors.handleError(400, 'user not found for accountId');
+  const ouUsers = await rdsOUsers.getUsersIn(occasionId, userIds);
+  if (ouUsers.count !== userIds.length) errors.handleError(404, 'user not found in occasion');
+
+  ouUsers.items.forEach((ou) => { if (ou.role < OCCASION_CONFIG.ROLES.admin.role || ou.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'accountId user is not admin'); });
+  await rdsOccasions.updateOccasion(occasionId, { accounts: JSON.stringify(body.accounts) });
+  return getOccasion(request);
+}
+
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
   try {
@@ -626,6 +646,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/vendors/list':
         resp = await getOccasionVendors(request);
+        break;
+
+      case '/v1/{occasionId}/accounts':
+        resp = await updateOccasionAccounts(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
