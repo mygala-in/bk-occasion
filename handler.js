@@ -583,7 +583,7 @@ async function updateOccasionAccounts(request) {
   if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
 
   const accountIds = Object.values(body.accounts);
-  const userIds = await rdsUsers.getIdsByAccountIds(accountIds);
+  const userIds = await rdsUsers.getUserIdByAccounts(accountIds);
   if (userIds.length !== accountIds.length) errors.handleError(400, 'user not found for accountId');
   const ouUsers = await rdsOUsers.getUsersIn(occasionId, userIds);
   if (ouUsers.count !== userIds.length) errors.handleError(404, 'user not found in occasion');
