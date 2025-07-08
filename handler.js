@@ -576,7 +576,7 @@ async function getOccasionVendors(request) {
 async function updateOccasionAccounts(request) {
   const { decoded, pathParameters, body } = request;
   const { occasionId } = pathParameters;
-  logger.info('occasion accounts update request');
+
   const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
   logger.info('requested user ', ouObj);
   if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
@@ -584,27 +584,28 @@ async function updateOccasionAccounts(request) {
 
   const accountIds = Object.values(body.accounts);
   const users = await rdsUsers.getUserByAccounts(accountIds);
-  if (_.isEmpty(users)) errors.handleError(404, 'user not found for accountId');
+  if (_.isEmpty(users) || users.items.length !== accountIds.length) errors.handleError(404, 'one or more users not found for provided account IDs');
 
   const userIds = users.items.map((user) => user.id);
-  if (userIds.length !== accountIds.length) errors.handleError(400, 'user not found for accountId');
-  const ouUsers = await rdsOUsers.getUsersIn(occasionId, userIds);
-  if (ouUsers.count !== userIds.length) errors.handleError(404, 'user not found in occasion');
+  const oUsers = await rdsOUsers.getUsersIn(occasionId, userIds);
+  if (oUsers.count !== userIds.length) errors.handleError(404, 'one or more users not found in occasion');
 
-  ouUsers.items.forEach((ou) => {
-    if (ou.role < OCCASION_CONFIG.ROLES.admin.role) errors.handleError(401, 'user is not admin');
-    if (ou.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'accountId user is not verifified');
-  });
 
-  _.each(body.accounts, (accountId, side) => {
-    if (side === 'B' || side === 'G') {
-      const user = users.items.find((u) => u.accountId === accountId);
-      const ouUser = ouUsers.items.find((ou) => ou.userId === user.id);
-      if (ouUser.side !== side) {
-        errors.handleError(401, `accountId user has incorrect side ${side}`);
-      }
+  Object.entries(body.accounts).forEach(([side, accountId]) => {
+    const user = users.items.find((u) => u.accountId === accountId);
+    const oUser = oUsers.items.find((ou) => ou.userId === user.id);
+
+    if (oUser.role < OCCASION_CONFIG.ROLES.admin.role) {
+      errors.handleError(401, `user with account ${accountId} is not an admin`);
+    }
+    if (oUser.status !== OCCASION_CONFIG.status.verified) {
+      errors.handleError(401, `user with account ${accountId} is not verified`);
+    }
+    if ((side === 'B' || side === 'G') && oUser.side !== side) {
+      errors.handleError(401, `user with account ${accountId} has incorrect side assignment`);
     }
   });
+
   await rdsOccasions.updateOccasion(occasionId, { accounts: JSON.stringify(body.accounts) });
   return getOccasion(request);
 }
