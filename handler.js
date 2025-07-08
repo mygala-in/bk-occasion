@@ -573,6 +573,43 @@ async function getOccasionVendors(request) {
   return resp;
 }
 
+async function updateOccasionAccounts(request) {
+  const { decoded, pathParameters, body } = request;
+  const { occasionId } = pathParameters;
+
+  const ouObj = await rdsOUsers.getUser(occasionId, decoded.id);
+  logger.info('requested user ', ouObj);
+  if (_.isEmpty(ouObj)) errors.handleError(404, 'no association with requested occasion');
+  if (ouObj.role < OCCASION_CONFIG.ROLES.admin.role || ouObj.status !== OCCASION_CONFIG.status.verified) errors.handleError(401, 'unauthorized');
+
+  const accountIds = Object.values(body.accounts);
+  const users = await rdsUsers.getUserByAccounts(accountIds);
+  if (_.isEmpty(users) || users.items.length !== accountIds.length) errors.handleError(404, 'one or more users not found for provided account IDs');
+
+  const userIds = users.items.map((user) => user.id);
+  const oUsers = await rdsOUsers.getUsersIn(occasionId, userIds);
+  if (oUsers.count !== userIds.length) errors.handleError(404, 'one or more users not found in occasion');
+
+
+  Object.entries(body.accounts).forEach(([side, accountId]) => {
+    const user = users.items.find((u) => u.accountId === accountId);
+    const oUser = oUsers.items.find((ou) => ou.userId === user.id);
+
+    if (oUser.role < OCCASION_CONFIG.ROLES.admin.role) {
+      errors.handleError(401, `user with account ${accountId} is not an admin`);
+    }
+    if (oUser.status !== OCCASION_CONFIG.status.verified) {
+      errors.handleError(401, `user with account ${accountId} is not verified`);
+    }
+    if ((side === 'B' || side === 'G') && oUser.side !== side) {
+      errors.handleError(401, `user with account ${accountId} has incorrect side assignment`);
+    }
+  });
+
+  await rdsOccasions.updateOccasion(occasionId, { accounts: JSON.stringify(body.accounts) });
+  return getOccasion(request);
+}
+
 async function invoke(event, context, callback) {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Credentials': true };
   try {
@@ -626,6 +663,10 @@ async function invoke(event, context, callback) {
 
       case '/v1/{occasionId}/vendors/list':
         resp = await getOccasionVendors(request);
+        break;
+
+      case '/v1/{occasionId}/accounts':
+        resp = await updateOccasionAccounts(request);
         break;
 
       default: errors.handleError(400, 'invalid request path');
