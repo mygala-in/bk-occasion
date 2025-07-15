@@ -558,7 +558,8 @@ async function actionOnUser(request) {
 async function getOccasionVendors(request) {
   const { occasionId } = request.pathParameters;
   const resp = { entity: 'collection', items: [], count: 0 };
-  const { vendors } = await rdsOccasions.getOccasion(occasionId);
+  const occasion = await rdsOccasions.getOccasion(occasionId);
+  const vendors = occasion?.vendors;
   if (_.isEmpty(vendors)) return resp;
   logger.info('occasion vendors', vendors);
 
