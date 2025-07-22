@@ -321,7 +321,7 @@ async function getOccasionUsers(request) {
   else oUsers = await rdsOUsers.getUsers(occasionId);
 
   const userIds = oUsers.items.map((user) => user.userId);
-  const miniProfiles = await rdsUsers.getUserFieldsIn(_.unique(userIds), constants.MINI_PROFILE_FIELDS);
+  const miniProfiles = await rdsUsers.getUserFieldsIn(_.unique(userIds), [...constants.MINI_PROFILE_FIELDS, 'accountId']);
   for (let i = 0; i < oUsers.count; i += 1) {
     [oUsers.items[i].user] = miniProfiles.items.filter((user) => user.id === oUsers.items[i].userId);
   }
