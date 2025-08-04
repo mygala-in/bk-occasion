@@ -1,6 +1,6 @@
 [submodule "bk-config"]
 	path = bk-config
-	url = https://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@github.com/mygala-in/bk-config.git
+	url = https://github.com/mygala-in/bk-config.git
 [submodule "bk-utils"]
 	path = bk-utils
-	url = https://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@github.com/mygala-in/bk-utils.git
+	url = https://github.com/mygala-in/bk-utils.git

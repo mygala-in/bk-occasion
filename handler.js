@@ -28,13 +28,17 @@ async function getOccasion(request) {
   const occasion = await rdsOccasions.getOccasion(occasionId);
   logger.info('occasion ', JSON.stringify(occasion));
   if (_.isEmpty(occasion)) errors.handleError(404, 'occasion not found');
-  const gbIds = []; // groom & bride Ids
+  const gbhIds = []; // groom, bride & host Ids
   if (_.has(occasion.extras, 'brideId')) {
-    if (!gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+    if (!gbhIds.includes(occasion.extras.brideId)) gbhIds.push(occasion.extras.brideId);
   }
   if (_.has(occasion.extras, 'groomId')) {
-    if (!gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
-    logger.info('groom & bride ids ', JSON.stringify(gbIds));
+    if (!gbhIds.includes(occasion.extras.groomId)) gbhIds.push(occasion.extras.groomId);
+    logger.info('groom & bride ids ', JSON.stringify(gbhIds));
+  }
+  if (_.has(occasion.extras, 'hostId')) {
+    if (!gbhIds.includes(occasion.extras.hostId)) gbhIds.push(occasion.extras.hostId);
+    logger.info('groom & bride ids ', JSON.stringify(gbhIds));
   }
 
   if (decoded) {
@@ -45,7 +49,7 @@ async function getOccasion(request) {
   const [ouCounts, extras, gbUsers] = await Promise.all([
     rdsOUsers.getOUsersCounts(occasion.id),
     helper.occasionExtras(occasion.id, include),
-    rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
+    rdsUsers.getUserFieldsIn(gbhIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']),
   ]);
 
   if (_.has(occasion.extras, 'brideId')) {
@@ -73,7 +77,7 @@ async function getOccasions(request) {
   const vIds = mJoins.items.filter((i) => i.status === OCCASION_CONFIG.status.verified).map((i) => i.occasionId);
   logger.info('verified occasion ids ', vIds);
   if (type === 'occasions') {
-    const gbIds = []; // groom & bride Ids
+    const gbhIds = []; // groom, bride & host Ids
     const [occasions, ouCounts] = await Promise.all([rdsOccasions.getOccasionsIn(oIds), rdsOUsers.getOUsersCountsIn(oIds)]);
     logger.info('occasions ', JSON.stringify(occasions));
     logger.info('ou counts ', JSON.stringify(ouCounts));
@@ -81,21 +85,25 @@ async function getOccasions(request) {
       const occasion = occasions.items[i];
       [occasion.ouser] = mJoins.items.filter((item) => item.occasionId === occasion.id);
       if (_.has(occasion.extras, 'brideId')) {
-        if (occasion.extras.brideId && !gbIds.includes(occasion.extras.brideId)) gbIds.push(occasion.extras.brideId);
+        if (occasion.extras.brideId && !gbhIds.includes(occasion.extras.brideId)) gbhIds.push(occasion.extras.brideId);
       }
       if (_.has(occasion.extras, 'groomId')) {
-        if (occasion.extras.groomId && !gbIds.includes(occasion.extras.groomId)) gbIds.push(occasion.extras.groomId);
+        if (occasion.extras.groomId && !gbhIds.includes(occasion.extras.groomId)) gbhIds.push(occasion.extras.groomId);
+      }
+      if (_.has(occasion.extras, 'hostId')) {
+        if (occasion.extras.hostId && !gbhIds.includes(occasion.extras.hostId)) gbhIds.push(occasion.extras.hostId);
       }
       const [ouc] = ouCounts.items.filter((item) => item.occasionId === occasion.id);
       occasion.counts = ouc;
       occasions.items[i] = occasion;
     }
-    logger.info('groom & bride ids ', JSON.stringify(gbIds));
-    const gbUsers = await rdsUsers.getUserFieldsIn(gbIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']);
-    logger.info('gbUsers ', JSON.stringify(gbUsers));
+    logger.info('groom & bride ids ', JSON.stringify(gbhIds));
+    const gbhUsers = await rdsUsers.getUserFieldsIn(gbhIds, [...constants.MINI_PROFILE_FIELDS, 'facebook', 'instagram', 'createdAt', 'updatedAt']);
+    logger.info('gbhUsers ', JSON.stringify(gbhUsers));
     for (let i = 0; i < occasions.count; i += 1) {
-      if (_.has(occasions.items[i].extras, 'brideId')) [occasions.items[i].extras.bride] = gbUsers.items.filter((item) => item.id === occasions.items[i].extras.brideId);
-      if (_.has(occasions.items[i].extras, 'groomId')) [occasions.items[i].extras.groom] = gbUsers.items.filter((item) => item.id === occasions.items[i].extras.groomId);
+      if (_.has(occasions.items[i].extras, 'brideId')) [occasions.items[i].extras.bride] = gbhUsers.items.filter((item) => item.id === occasions.items[i].extras.brideId);
+      if (_.has(occasions.items[i].extras, 'groomId')) [occasions.items[i].extras.groom] = gbhUsers.items.filter((item) => item.id === occasions.items[i].extras.groomId);
+      if (_.has(occasions.items[i].extras, 'hostId')) [occasions.items[i].extras.host] = gbhUsers.items.filter((item) => item.id === occasions.items[i].extras.hostId);
     }
     return occasions;
   }
@@ -188,6 +196,10 @@ async function updateOccasion(request) {
   if (body.extras?.brideId) {
     const bMuObj = { userId: body.extras.brideId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, side: 'B', verifierId: decoded.id };
     tasks.push(rdsOUsers.newOrUpdateUser(bMuObj));
+  }
+  if (body.extras?.hostId) {
+    const hMuObj = { userId: body.extras.hostId, occasionId, role: OCCASION_CONFIG.ROLES.admin.role, status: OCCASION_CONFIG.status.verified, verifierId: decoded.id };
+    tasks.push(rdsOUsers.newOrUpdateUser(hMuObj));
   }
   if (body.vendors) body.vendors = JSON.stringify(body.vendors);
   if (body.side && ouObj.side !== body.side) tasks.push(rdsOUsers.updateUser(occasionId, decoded.id, { side: body.side }));
