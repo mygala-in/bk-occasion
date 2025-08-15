@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"description": "the backend occasion service for mygala",
 	"main": "handler.js",
+	"type": "module",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"lint": "node_modules/eslint/bin/eslint.js .",
