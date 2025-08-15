@@ -1,15 +1,15 @@
-const _ = require('underscore');
-const logger = require('./bk-utils/logger');
-const common = require('./bk-utils/common');
-const errors = require('./bk-utils/errors');
-const redis = require('./bk-utils/redis.helper');
-const constants = require('./bk-utils/constants');
-const snsHelper = require('./bk-utils/sns.helper');
-const rdsPosts = require('./bk-utils/rds/rds.posts.helper');
-const rdsLocs = require('./bk-utils/rds/rds.locations.helper');
-const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
-const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
-const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+import _ from 'underscore';
+import logger from './bk-utils/logger.js';
+import common from './bk-utils/common.js';
+import errors from './bk-utils/errors.js';
+import redis from './bk-utils/redis.helper.js';
+import constants from './bk-utils/constants.js';
+import snsHelper from './bk-utils/sns.helper.js';
+import rdsPosts from './bk-utils/rds/rds.posts.helper.js';
+import rdsLocs from './bk-utils/rds/rds.locations.helper.js';
+import rdsOccasions from './bk-utils/rds/rds.occasions.helper.js';
+import rdsOUsers from './bk-utils/rds/rds.occasion.users.helper.js';
+import rdsOEvents from './bk-utils/rds/rds.occasion.events.helper.js';
 
 
 async function deleteOccasion(message) {
@@ -154,6 +154,6 @@ async function sns(request) {
 }
 
 
-module.exports = {
+export {
   sns,
 };

@@ -1,16 +1,16 @@
-const _ = require('underscore');
-const logger = require('./bk-utils/logger');
-const access = require('./bk-utils/access');
-const errors = require('./bk-utils/errors');
-const constants = require('./bk-utils/constants');
-const common = require('./bk-utils/common');
-// const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
-const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
-const snsHelper = require('./bk-utils/sns.helper');
-// const rdsUsers = require('./bk-utils/rds/rds.users.helper');
-const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
-const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
-const helper = require('./helper');
+import _ from 'underscore';
+import logger from './bk-utils/logger.js';
+import access from './bk-utils/access.js';
+import errors from './bk-utils/errors.js';
+import constants from './bk-utils/constants.js';
+import common from './bk-utils/common.js';
+// import rdsOccasions from './bk-utils/rds/rds.occasions.helper.js'
+import rdsOUsers from './bk-utils/rds/rds.occasion.users.helper.js';
+import snsHelper from './bk-utils/sns.helper.js';
+// import rdsUsers from './bk-utils/rds/rds.users.helper.js'
+import rdsAssets from './bk-utils/rds/rds.assets.helper.js';
+import rdsOEvents from './bk-utils/rds/rds.occasion.events.helper.js';
+import helper from './helper.js';
 
 const { APP_NOTIFICATIONS, OCCASION_CONFIG } = constants;
 
@@ -253,6 +253,6 @@ async function invoke(event, context, callback) {
   }
 }
 
-module.exports = {
+export {
   invoke,
 };

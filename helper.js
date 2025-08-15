@@ -1,9 +1,9 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-await-in-loop */
-const logger = require('./bk-utils/logger');
-const rdsAssets = require('./bk-utils/rds/rds.assets.helper');
-const rdsLocs = require('./bk-utils/rds/rds.locations.helper');
-const rdsOEvents = require('./bk-utils/rds/rds.occasion.events.helper');
+import logger from './bk-utils/logger.js';
+import rdsAssets from './bk-utils/rds/rds.assets.helper.js';
+import rdsLocs from './bk-utils/rds/rds.locations.helper.js';
+import rdsOEvents from './bk-utils/rds/rds.occasion.events.helper.js';
 
 async function occasionExtras(occasionId, include) {
   const resp = {};
@@ -95,7 +95,7 @@ async function eventsExtras(occasionId, eventIds, include) {
   return resp;
 }
 
-module.exports = {
+export default {
   eventExtras,
   eventsExtras,
   occasionExtras,

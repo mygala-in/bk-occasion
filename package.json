@@ -19,9 +19,9 @@
 	"license": "ISC",
 	"devDependencies": {
 		"aws-sdk": "^2.925.0",
-		"eslint": "^8.57.0",
+		"eslint": "^8.57.1",
 		"eslint-config-airbnb-base": "^15.0.0",
-		"eslint-plugin-import": "^2.29.1",
+		"eslint-plugin-import": "^2.32.0",
 		"serverless": "^3.12.0",
 		"serverless-domain-manager": "^6.0.2",
 		"serverless-prune-plugin": "^2.0.1",

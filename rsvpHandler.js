@@ -1,12 +1,12 @@
-const _ = require('underscore');
-const logger = require('./bk-utils/logger');
-const access = require('./bk-utils/access');
-const errors = require('./bk-utils/errors');
-const constants = require('./bk-utils/constants');
-const rdsUsers = require('./bk-utils/rds/rds.users.helper');
-const rdsOccasions = require('./bk-utils/rds/rds.occasions.helper');
-const rdsRsvps = require('./bk-utils/rds/rds.occasion.rsvps.helper');
-const rdsOUsers = require('./bk-utils/rds/rds.occasion.users.helper');
+import _ from 'underscore';
+import logger from './bk-utils/logger.js';
+import access from './bk-utils/access.js';
+import errors from './bk-utils/errors.js';
+import constants from './bk-utils/constants.js';
+import rdsUsers from './bk-utils/rds/rds.users.helper.js';
+import rdsOccasions from './bk-utils/rds/rds.occasions.helper.js';
+import rdsRsvps from './bk-utils/rds/rds.occasion.rsvps.helper.js';
+import rdsOUsers from './bk-utils/rds/rds.occasion.users.helper.js';
 
 const { OCCASION_CONFIG } = constants;
 
@@ -119,6 +119,6 @@ async function invoke(event, context, callback) {
 }
 
 
-module.exports = {
+export {
   invoke,
 };
