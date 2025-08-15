@@ -355,6 +355,12 @@ async function getOccasionByCode(request) {
     rdsUsers.getUserFields(occasion.creatorId, [...constants.MINI_PROFILE_FIELDS, 'role']),
     helper.occasionExtras(occasion.id, include),
   ]);
+  if (uObj.role === 2 && occasion.vendors) {
+    const vendor = await rdsVendors.getVendorById(occasion.vendors[0]);
+    if (vendor?.social?.instagram) {
+      uObj.instagram = vendor.social.instagram;
+    }
+  }
   occasion.host = uObj;
 
   const rsvp = await rdsRsvps.getRsvpList(`occasion_${occasion.id}`);
