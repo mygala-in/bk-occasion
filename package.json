@@ -6,11 +6,9 @@
 	"type": "module",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"lint": "node_modules/eslint/bin/eslint.js .",
-		"lint-fix": "node_modules/eslint/bin/eslint.js . --fix",
 		"dev-deploy": "node_modules/serverless/bin/serverless.js deploy --stage dev",
 		"prod-deploy": "node_modules/serverless/bin/serverless.js deploy --stage prod",
-		"local": "node_modules/serverless/bin/serverless.js offline start --stage dev"
+		"dev-destroy": "node_modules/serverless/bin/serverless.js remove --stage dev"
 	},
 	"repository": {
 		"type": "git",
@@ -18,16 +16,6 @@
 	},
 	"author": "dhanush",
 	"license": "ISC",
-	"devDependencies": {
-		"aws-sdk": "^2.925.0",
-		"eslint": "^8.57.1",
-		"eslint-config-airbnb-base": "^15.0.0",
-		"eslint-plugin-import": "^2.32.0",
-		"serverless": "^3.12.0",
-		"serverless-domain-manager": "^6.0.2",
-		"serverless-prune-plugin": "^2.0.1",
-		"serverless-offline": "^13.9.0"
-	},
 	"dependencies": {
 		"ioredis": "^5.5.0",
 		"joi": "^17.13.3",

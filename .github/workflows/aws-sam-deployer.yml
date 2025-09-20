@@ -1,0 +1,8 @@
+on: [push]
+
+jobs:
+  deploy:
+    uses:
+      mygala-in/gh-workflows/.github/workflows/aws-sam-deployer.yml@main
+    with:
+      repo-name: ${{ github.event.repository.name }}
