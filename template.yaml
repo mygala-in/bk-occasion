@@ -122,11 +122,13 @@ Parameters:
 Mappings:
   StageConfig:
     dev:
-      DomainName: dev-api.mygala.in
+      Domain: dev-api.mygala.in
       BasePath: occasion
+      DeploymentBucket: dev-mygala-serverless-deployments
     prod:
-      DomainName: api.mygala.in
+      Domain: api.mygala.in
       BasePath: occasion
+      DeploymentBucket: prod-mygala-serverless-deployments
 
 Globals:
   Function:
@@ -355,7 +357,7 @@ Resources:
   OccasionApiMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Properties:
-      DomainName: !FindInMap [StageConfig, !Ref stage, DomainName]
+      DomainName: !FindInMap [StageConfig, !Ref stage, Domain]
       RestApiId: !Ref OccasionApi
       Stage: !Sub "${stage}"
       BasePath: occasion
