@@ -1,7 +1,7 @@
 {
 	"name": "mygala-bk-occasion-service",
 	"version": "1.0.0",
-	"description": "the backend occasion service for mygala",
+	"description": "Serverless microservice for managing special occasions, events, RSVPs, and guest management on the MyGala platform - built with AWS Lambda and Node.js",
 	"main": "handler.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
