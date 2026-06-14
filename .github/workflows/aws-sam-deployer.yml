@@ -13,8 +13,7 @@ permissions:
 jobs:
   deploy:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    uses:
-      mygala-in/gh-workflows/.github/workflows/aws-sam-deployer.yml@main
+    uses: mygala-in/gh-workflows/.github/workflows/aws-sam-deployer.yml@main
     with:
       repo-name: ${{ github.event.repository.name }}
     secrets: inherit
