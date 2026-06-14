@@ -65,6 +65,7 @@ Globals:
     Environment:
       Variables:
         stage: !Ref Stage
+        serviceName: occasion
         awsRegion: !Ref AwsRegion
         envPrefix: !Ref EnvPrefix
         awsAccountId: !Ref AwsAccountId
