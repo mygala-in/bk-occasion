@@ -1,0 +1,285 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: mygala bk-occasion APIs on AWS SAM
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+    Default: dev
+  EnvPrefix:
+    Type: String
+  AwsRegion:
+    Type: String
+  AwsAccountId:
+    Type: String
+  LambdaRoleArn:
+    Type: String
+  FirebaseApp:
+    Type: String
+  RdsDB:
+    Type: String
+  RdsUser:
+    Type: String
+  RdsPassword:
+    Type: String
+  RdsHost:
+    Type: String
+  JwtSecretKey:
+    Type: String
+  AssetsBucket:
+    Type: String
+  PublicAssetsBucket:
+    Type: String
+  AssetsCloudFront:
+    Type: String
+  IosPackageName:
+    Type: String
+  IosAppStoreId:
+    Type: String
+  AndroidPackageName:
+    Type: String
+  ApiUrl:
+    Type: String
+  AssetsUrl:
+    Type: String
+  WebUrl:
+    Type: String
+  RedisHost:
+    Type: String
+  RedisPassword:
+    Type: String
+    Default: ''
+  RedisPort:
+    Type: Number
+  AwsNodeJsConnectionReuseEnabled:
+    Type: Number
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 12
+    CodeUri: .
+    Environment:
+      Variables:
+        stage: !Ref Stage
+        awsRegion: !Ref AwsRegion
+        envPrefix: !Ref EnvPrefix
+        awsAccountId: !Ref AwsAccountId
+        firebaseApp: !Ref FirebaseApp
+        rdsDB: !Ref RdsDB
+        rdsUser: !Ref RdsUser
+        rdsPassword: !Ref RdsPassword
+        rdsHost: !Ref RdsHost
+        jwtSecretKey: !Ref JwtSecretKey
+        assetsBucket: !Ref AssetsBucket
+        publicAssetsBucket: !Ref PublicAssetsBucket
+        assetsCloudFront: !Ref AssetsCloudFront
+        iosPackageName: !Ref IosPackageName
+        iosAppStoreId: !Ref IosAppStoreId
+        androidPackageName: !Ref AndroidPackageName
+        apiUrl: !Ref ApiUrl
+        assetsUrl: !Ref AssetsUrl
+        webUrl: !Ref WebUrl
+        redisHost: !Ref RedisHost
+        redisPassword: !Ref RedisPassword
+        redisPort: !Ref RedisPort
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: !Ref AwsNodeJsConnectionReuseEnabled
+
+Resources:
+  OccasionApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub '${EnvPrefix}-occasion-api'
+      StageName: !Ref Stage
+      EndpointConfiguration: REGIONAL
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'platform,appversion,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Firebase-AppCheck'"
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  OccasionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub '${EnvPrefix}-occasion-apis'
+      Handler: handler.invoke
+      Role: !Ref LambdaRoleArn
+      Events:
+        NewOccasion:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/new
+            Method: post
+        ListOccasions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/list
+            Method: get
+        GetOccasion:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}
+            Method: get
+        UpdateOccasion:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}
+            Method: put
+        DeleteOccasion:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}
+            Method: delete
+        JoinOccasion:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/join
+            Method: put
+        GetOccasionUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/users
+            Method: get
+        GetOccasionAssets:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/assets
+            Method: get
+        GetOccasionInvite:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/invite
+            Method: get
+        ActionOnUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/user/{userId}
+            Method: put
+        GetOccasionVendors:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/vendors/list
+            Method: get
+        UpdateOccasionAccounts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/accounts
+            Method: put
+
+  EventFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub '${EnvPrefix}-occasion-event-apis'
+      Handler: eventsHandler.invoke
+      Role: !Ref LambdaRoleArn
+      Events:
+        ListEvents:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/event/list
+            Method: get
+        NewEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/event/new
+            Method: post
+        GetEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/event/{eventId}
+            Method: get
+        UpdateEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/event/{eventId}
+            Method: put
+        DeleteEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/event/{eventId}
+            Method: delete
+        GetEventAssets:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/event/{eventId}/assets
+            Method: get
+
+  RsvpFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub '${EnvPrefix}-occasion-rsvp-apis'
+      Handler: rsvpHandler.invoke
+      Role: !Ref LambdaRoleArn
+      Events:
+        NewWebRsvp:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/rsvp/web
+            Method: post
+        NewOrUpdateRsvp:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/rsvp
+            Method: put
+        GetRsvpList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OccasionApi
+            Path: /v1/{occasionId}/rsvp/list
+            Method: get
+
+  BgTasksFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub '${EnvPrefix}-occasion-bg-tasks'
+      Handler: processor.sns
+      Timeout: 60
+      Role: !Ref LambdaRoleArn
+      Events:
+        OccasionBgTasksEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref OccasionBgTasksSNS
+
+  OccasionBgTasksSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${EnvPrefix}-occasion-bg-tasks'
+
+Outputs:
+  OccasionApiId:
+    Description: API Gateway REST API Id
+    Value: !Ref OccasionApi
+  OccasionApiUrl:
+    Description: Execute API base URL for the deployed stage
+    Value: !Sub 'https://${OccasionApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
