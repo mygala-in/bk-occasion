@@ -10,10 +10,49 @@ on:
 permissions:
   contents: read
 
+env:
+  AWS_REGION: 'ap-south-1'
+  NODE_VERSION: '22'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    uses: mygala-in/gh-workflows/.github/workflows/aws-sam-deployer.yml@main
-    with:
-      repo-name: ${{ github.event.repository.name }}
-    secrets: inherit
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: '0'
+          submodules: 'recursive'
+          token: ${{ secrets.GH_SUBMODULES_TOKEN }}
+
+      - name: Validate SAM template
+        run: sam validate --lint
+
+      - name: Install dependencies
+        run: |
+          npm i
+          cd bk-utils; npm i; cd ..
+
+      - name: Lint Check
+        run: cd bk-utils; npm run lint; cd ..
+
+      - name: SAM Build
+        run: sam build
+
+      - name: Deploy SAM Application
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+        run: |
+          cat bk-config/configs.prod.txt bk-config/envs.prod.txt > parameters.txt
+          PARAMS=$(cat parameters.txt | tr '\n' ' ')
+          sam deploy --template-file .aws-sam/build/template.yaml --stack-name mygala-bk-occasion-prod --capabilities CAPABILITY_IAM --region ${{ env.AWS_REGION }} --s3-bucket prod-mygala-serverless-deployments --disable-rollback --no-fail-on-empty-changeset --parameter-overrides $PARAMS
